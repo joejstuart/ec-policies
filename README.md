@@ -145,3 +145,5 @@ See also
 [contract]: https://github.com/hacbs-contract
 [appstudio]: https://github.com/redhat-appstudio
 [builddefs]: https://github.com/redhat-appstudio/build-definitions
+
+JiraID: adding jira ids to commits works
