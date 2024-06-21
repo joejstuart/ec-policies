@@ -283,7 +283,7 @@ _missing_tasks(required_tasks) := {task |
 
 	# only tasks that are trusted, i.e. tasks that have a record in the trusted_tasks data
 	trusted := [task_name |
-		some task in tasks
+		some task_name in tasks
 		# tkn.is_trusted_task(task)
 		# some task_name in tkn.task_names(task)
 	]
