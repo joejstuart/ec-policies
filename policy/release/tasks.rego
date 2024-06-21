@@ -170,7 +170,7 @@ deny contains result if {
 #   in the PipelineRun attestation.
 # custom:
 #   short_name: required_tasks_found
-#   failure_msg: '%s is missing'
+#   failure_msg: '%s is missing %s'
 #   solution: >-
 #     Make sure all required tasks are in the build pipeline. The required task list
 #     is contained as xref:ec-cli:ROOT:configuration.adoc#_data_sources[data] under the key 'required-tasks'.
@@ -184,7 +184,7 @@ deny contains result if {
 
 	# Don't report an error if a task is required now, but not in the future
 	required_task in latest_required_tasks.tasks
-	result := lib.result_helper_with_term(rego.metadata.chain(), [latest_required_tasks.tasks], required_task)
+	result := lib.result_helper_with_term(rego.metadata.chain(), [latest_required_tasks.tasks, _missing_tasks(current_required_tasks.tasks)], required_task)
 }
 
 # METADATA
