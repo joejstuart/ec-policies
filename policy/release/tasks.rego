@@ -170,7 +170,7 @@ deny contains result if {
 #   in the PipelineRun attestation.
 # custom:
 #   short_name: required_tasks_found
-#   failure_msg: '%s is missing %s'
+#   failure_msg: '%s is missing blah %s'
 #   solution: >-
 #     Make sure all required tasks are in the build pipeline. The required task list
 #     is contained as xref:ec-cli:ROOT:configuration.adoc#_data_sources[data] under the key 'required-tasks'.
