@@ -289,6 +289,7 @@ _missing_tasks(required_tasks) := {task |
 	]
 
 	some required_task in required_tasks
+	print(_any_missing(required_task, trusted))
 	some task in _any_missing(required_task, trusted)
 }
 
