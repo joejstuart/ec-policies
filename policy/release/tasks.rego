@@ -182,6 +182,8 @@ deny contains result if {
 deny contains result if {
 	some required_task in _missing_tasks(current_required_tasks.tasks)
 
+	print("whatever")
+
 	# Don't report an error if a task is required now, but not in the future
 	required_task in latest_required_tasks.tasks
 	result := lib.result_helper_with_term(rego.metadata.chain(), [_format_missing(required_task, false)], required_task)
@@ -289,9 +291,6 @@ _missing_tasks(required_tasks) := {task |
 	]
 
 	some required_task in required_tasks
-	print(_any_missing(required_task, trusted))
-	print("_missing_tasks"
-	)
 	some task in _any_missing(required_task, trusted)
 }
 
