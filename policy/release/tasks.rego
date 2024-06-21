@@ -288,8 +288,10 @@ _missing_tasks(required_tasks) := {task |
 		some task_name in tkn.task_names(task)
 	]
 
-	some required_task in required_tasks
-	some task in _any_missing(required_task, trusted)
+	some task in trusted
+
+	# some required_task in required_tasks
+	# some task in _any_missing(required_task, trusted)
 }
 
 _any_missing(required, tasks) := missing if {
