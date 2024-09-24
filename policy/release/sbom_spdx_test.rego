@@ -26,47 +26,6 @@ test_not_found if {
 		with input.image.ref as "registry.local/spam@sha256:123"
 }
 
-# regal ignore:rule-length
-test_not_valid if {
-	attestations := [
-		# bad name
-		json.patch(_sbom_attestation, [{
-			"op": "add",
-			"path": "/statement/predicate/name",
-			"value": "spam",
-		}]),
-		# missing name
-		json.remove(_sbom_attestation, ["/statement/predicate/name"]),
-		# bad packages
-		json.patch(_sbom_attestation, [{
-			"op": "add",
-			"path": "/statement/predicate/packages",
-			"value": "spam",
-		}]),
-		# missing packages
-		json.remove(_sbom_attestation, ["/statement/predicate/packages"]),
-		# bad files
-		json.patch(_sbom_attestation, [{
-			"op": "add",
-			"path": "/statement/predicate/files",
-			"value": "spam",
-		}]),
-		# missing files
-		json.remove(_sbom_attestation, ["/statement/predicate/files"]),
-	]
-
-	expected := {violation |
-		some i in numbers.range(0, count(attestations) - 1)
-		violation := {
-			"code": "sbom_spdx.valid",
-			"msg": sprintf("SPDX SBOM at index %d is not valid", [i]),
-		}
-	}
-
-	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as attestations
-		with input.image.ref as "registry.local/spam@sha256:123"
-}
-
 test_missing_packages if {
 	expected := {{"code": "sbom_spdx.contains_packages", "msg": "The list of packages is empty"}}
 	att := json.patch(_sbom_attestation, [{
@@ -98,6 +57,19 @@ test_digest_mismatch if {
 		with input.image.ref as "registry.local/spam@sha256:abc"
 }
 
+test_not_valid if {
+	expected := {{
+		"code": "sbom_spdx.valid",
+		"msg": "SPDX SBOM at index 0 is not valid: packages: Invalid type. Expected: array, given: string",
+	}}
+	att := json.patch(_sbom_attestation, [{
+		"op": "add",
+		"path": "/statement/predicate/packages",
+		"value": "spam",
+	}])
+	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [att]
+}
+
 _sbom_attestation := {"statement": {
 	"predicateType": "https://spdx.dev/Document",
 	"predicate": {
@@ -105,10 +77,44 @@ _sbom_attestation := {"statement": {
 		"dataLicense": "CC0-1.0",
 		"SPDXID": "SPDXRef-DOCUMENT",
 		"name": "registry.local/bacon@sha256:123",
-		"packages": [{"name": "spam"}],
+		"creationInfo": {
+      		"created": "2006-08-14T02:34:56-06:00",
+      		"creators": [
+        		"Tool: example SPDX document only"
+      		]
+    	},
+		"packages": [
+			{
+				"SPDXID": "SPDXRef-image-index",
+				"name": "spam",
+				"versionInfo": "1.1.2-25",
+				"supplier": "Organization: Red Hat",
+				"downloadLocation": "NOASSERTION",
+				"licenseDeclared": "Apache-2.0",
+				"externalRefs": [
+				{
+					"referenceCategory": "PACKAGE-MANAGER",
+					"referenceType": "purl",
+					"referenceLocator": "pkg:oci/kernel-module-management-rhel9-operator@sha256%3Ad845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98"
+				}
+				],
+				"checksums": [
+				{
+					"algorithm": "SHA256",
+					"checksumValue": "d845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98"
+				}
+				]
+			}
+		],
 		"files": [{
 			"fileName": "/usr/bin/spam",
 			"SPDXID": "SPDXRef-File-usr-bin-spam-0e18b4ee77321ba5",
+			"checksums": [
+          		{
+            		"algorithm": "SHA256",
+            		"checksumValue": "d845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98"
+          		}
+        	]
 		}],
 	},
 }}

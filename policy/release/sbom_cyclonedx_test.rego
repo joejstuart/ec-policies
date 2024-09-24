@@ -33,7 +33,6 @@ test_not_valid if {
 		"value": "spam",
 	}])
 	lib.assert_equal_results(expected, sbom_cyclonedx.deny) with input.attestations as [att]
-		with input.image.ref as "registry.local/spam@sha256:123"
 }
 
 test_attributes_not_allowed_all_good if {

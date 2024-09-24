@@ -10,6 +10,7 @@ import rego.v1
 
 import data.lib
 import data.lib.image
+import data.lib.sbom
 
 # METADATA
 # title: Found
@@ -27,18 +28,22 @@ deny contains result if {
 
 # METADATA
 # title: Valid
-# description: Check the SPDX SBOM has the expected format.
+# description: >-
+#   Check the SPDX SBOM has the expected format. It verifies the SPDX SBOM matches the 1.5
+#   version of the schema.
 # custom:
 #   short_name: valid
-#   failure_msg: SPDX SBOM at index %d is not valid
+#   failure_msg: 'SPDX SBOM at index %d is not valid: %s'
 #   solution: Make sure the build process produces a valid SPDX SBOM.
+#   collections:
+#   - minimal
+#   - redhat
 #
 deny contains result if {
-	some index, sbom in _sboms
-	not _is_valid(sbom)
-
-	# TODO: Consider adding an iteration index to the failuer message?
-	result := lib.result_helper(rego.metadata.chain(), [index])
+	some index, s in _sboms
+	some violation in json.match_schema(s, schema_2_3)[1]
+	error := violation.error
+	result := lib.result_helper(rego.metadata.chain(), [index, error])
 }
 
 # METADATA
