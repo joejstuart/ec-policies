@@ -62,6 +62,28 @@ deny contains result if {
 }
 
 # METADATA
+# title: Allowed
+# description: >-
+#   Confirm the SPDX SBOM contains only allowed packages. By default all packages are allowed.
+#   Use the "disallowed_packages" rule data key to provide a list of disallowed packages.
+# custom:
+#   short_name: allowed
+#   failure_msg: "Package is not allowed: %s"
+#   solution: >-
+#     Update the image to not use a disallowed package.
+#   collections:
+#   - redhat
+#
+deny contains result if {
+	some s in _sboms
+	some pkg in s.packages
+	some ref in pkg.externalRefs
+	ref.referenceType == "purl"	
+	_contains(ref.referenceLocator, lib.rule_data(_rule_data_packages_key))
+	result := lib.result_helper(rego.metadata.chain(), [ref.referenceLocator])
+}
+
+# METADATA
 # title: Contains files
 # description: Check the list of files in the SPDX SBOM is not empty.
 # custom:
@@ -117,3 +139,47 @@ _predicate(att) := predicate if {
 	json.is_valid(att.statement.predicate)
 	predicate := json.unmarshal(att.statement.predicate)
 } else := att.statement.predicate
+
+_contains(needle, haystack) if {
+	needle_purl := ec.purl.parse(needle)
+
+	some hay in haystack
+	hay_purl := ec.purl.parse(hay.purl)
+
+	needle_purl.type == hay_purl.type
+	needle_purl.namespace == hay_purl.namespace
+	needle_purl.name == hay_purl.name
+	_matches_version(needle_purl.version, hay)
+
+	not _excluded(needle_purl, object.get(hay, "exceptions", []))
+} else := false
+
+_excluded(purl, exceptions) if {
+	matches := [exception |
+		some exception in exceptions
+		exception.subpath == purl.subpath
+	]
+	count(matches) > 0
+}
+
+_matches_version(version, matcher) if {
+	matcher.format in {"semverv", "semver"}
+	matcher.min != ""
+	matcher.max != ""
+	semver.compare(_to_semver(version), _to_semver(matcher.min)) != -1
+	semver.compare(_to_semver(version), _to_semver(matcher.max)) != 1
+} else if {
+	matcher.format in {"semverv", "semver"}
+	matcher.min != ""
+	object.get(matcher, "max", "") == ""
+	semver.compare(_to_semver(version), _to_semver(matcher.min)) != -1
+} else if {
+	matcher.format in {"semverv", "semver"}
+	matcher.max != ""
+	object.get(matcher, "min", "") == ""
+	semver.compare(_to_semver(version), _to_semver(matcher.max)) != 1
+} else := false
+
+_to_semver(v) := trim_prefix(v, "v")
+
+_rule_data_packages_key := "disallowed_packages"

@@ -70,6 +70,57 @@ test_not_valid if {
 	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [att]
 }
 
+test_not_allowed_with_min if {
+	disallowed_packages := [{
+		"purl": "pkg:golang/k8s.io/client-go",
+		"format": "semverv",
+		"min": "v50.28.3",
+	}]
+
+	# Much lower than min version
+	assert_allowed("pkg:golang/k8s.io/client-go@v0.29.4", disallowed_packages)
+
+	# Lower than min version
+	assert_allowed("pkg:golang/k8s.io/client-go@v50.28.2", disallowed_packages)
+
+	# Exact match to min version
+	assert_not_allowed("pkg:golang/k8s.io/client-go@v50.28.3", disallowed_packages)
+
+	# Higher than min version
+	assert_not_allowed("pkg:golang/k8s.io/client-go@v50.28.4", disallowed_packages)
+
+	# Much higher than min version
+	assert_not_allowed("pkg:golang/k8s.io/client-go@v99.99.99", disallowed_packages)
+}
+
+assert_allowed(purl, disallowed_packages) if {
+	att := json.patch(_sbom_attestation, [{
+		"op": "add",
+		"path": "/statement/predicate/packages/0/externalRefs/0/referenceLocator",
+		"value": purl,
+	}])
+
+	# regal ignore:with-outside-test-context
+	lib.assert_empty(sbom_spdx.deny) with input.attestations as [att]
+		with data.rule_data.disallowed_packages as disallowed_packages
+}
+
+assert_not_allowed(purl, disallowed_packages) if {
+	expected := {{
+		"code": "sbom_spdx.allowed",
+		"msg": sprintf("Package is not allowed: %s", [purl]),
+	}}
+	att := json.patch(_sbom_attestation, [{
+		"op": "add",
+		"path": "/statement/predicate/packages/0/externalRefs/0/referenceLocator",
+		"value": purl,
+	}])
+
+	# regal ignore:with-outside-test-context
+	lib.assert_equal_results(sbom_spdx.deny, expected) with input.attestations as [att]
+		with data.rule_data.disallowed_packages as disallowed_packages
+}
+
 _sbom_attestation := {"statement": {
 	"predicateType": "https://spdx.dev/Document",
 	"predicate": {
