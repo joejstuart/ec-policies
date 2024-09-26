@@ -84,6 +84,35 @@ deny contains result if {
 }
 
 # METADATA
+# title: Allowed package external references
+# description: >-
+#   Confirm the SPDX SBOM contains only packages with explicitly allowed
+#   external references. By default all external references are allowed unless the
+#   "allowed_external_references" rule data key provides a list of type-pattern pairs
+#   that forbid the use of any other external reference of the given type where the
+#   reference url matches the given pattern.
+# custom:
+#   short_name: allowed_package_external_references
+#   failure_msg: Package %s has reference %q of type %q which is not explicitly allowed%s
+#   solution: Update the image to use only packages with explicitly allowed external references.
+#   collections:
+#   - redhat
+#   - policy_data
+#
+deny contains result if {
+	some s in _sboms
+	some pkg in s.packages
+	some reference in pkg.externalRefs
+	some allowed in lib.rule_data(_rule_data_allowed_external_references_key)
+	reference.referenceType == allowed.type
+	not regex.match(object.get(allowed, "referenceLocator", ""), object.get(reference, "referenceLocator", ""))
+
+	msg := regex.replace(object.get(allowed, "referenceLocator", ""), `(.+)`, ` by pattern "$1"`)
+
+	result := lib.result_helper(rego.metadata.chain(), [pkg.name, reference.referenceLocator, reference.referenceType, msg])
+}
+
+# METADATA
 # title: Contains files
 # description: Check the list of files in the SPDX SBOM is not empty.
 # custom:
@@ -183,3 +212,5 @@ _matches_version(version, matcher) if {
 _to_semver(v) := trim_prefix(v, "v")
 
 _rule_data_packages_key := "disallowed_packages"
+
+_rule_data_allowed_external_references_key := "allowed_external_references"

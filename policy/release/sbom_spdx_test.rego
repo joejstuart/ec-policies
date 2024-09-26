@@ -121,6 +121,28 @@ assert_not_allowed(purl, disallowed_packages) if {
 		with data.rule_data.disallowed_packages as disallowed_packages
 }
 
+test_external_references_allowed_regex_with_no_rules_is_allowed if {
+	expected := {}
+	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
+		with input.image.ref as "registry.local/spam@sha256:123"
+		with data.rule_data as {sbom_spdx._rule_data_allowed_external_references_key: []}
+}
+
+test_external_references_allowed_regex if {
+	expected := {{
+		"code": "sbom_spdx.allowed_package_external_references",
+		# regal ignore:line-length
+		"msg": `Package spam has reference "pkg:oci/kernel-module-management-rhel9-operator@sha256%3Ad845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98" of type "purl" which is not explicitly allowed by pattern ".*allowed.net.*"`,
+	}}
+
+	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
+		with input.image.ref as "registry.local/spam@sha256:123"
+		with data.rule_data as {sbom_spdx._rule_data_allowed_external_references_key: [{
+			"type": "purl",
+			"referenceLocator": ".*allowed.net.*",
+		}]}
+}
+
 _sbom_attestation := {"statement": {
 	"predicateType": "https://spdx.dev/Document",
 	"predicate": {
