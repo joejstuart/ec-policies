@@ -109,6 +109,38 @@ deny contains result if {
 
 	msg := regex.replace(object.get(allowed, "referenceLocator", ""), `(.+)`, ` by pattern "$1"`)
 
+	# regal ignore:line-length
+	result := lib.result_helper(rego.metadata.chain(), [pkg.name, reference.referenceLocator, reference.referenceType, msg])
+}
+
+# METADATA
+# title: Disallowed package external references
+# description: >-
+#   Confirm the SPDX SBOM contains only packages without disallowed
+#   external references. By default all external references are allowed. Use the
+#   "disallowed_external_references" rule data key to provide a list of type-pattern pairs
+#   that forbid the use of an external reference of the given type where the reference url
+#   matches the given pattern.
+# custom:
+#   short_name: disallowed_package_external_references
+#   failure_msg: Package %s has reference %q of type %q which is disallowed%s
+#   solution: Update the image to not use a package with a disallowed external reference.
+#   collections:
+#   - redhat
+#   - policy_data
+#   effective_on: 2024-07-31T00:00:00Z
+deny contains result if {
+	some s in _sboms
+	some pkg in s.packages
+	some reference in pkg.externalRefs
+	some disallowed in lib.rule_data(_rule_data_disallowed_external_references_key)
+
+	reference.referenceType == disallowed.type
+	regex.match(object.get(disallowed, "referenceLocator", ""), object.get(reference, "url", ""))
+
+	msg := regex.replace(object.get(disallowed, "referenceLocator", ""), `(.+)`, ` by pattern "$1"`)
+
+	# regal ignore:line-length
 	result := lib.result_helper(rego.metadata.chain(), [pkg.name, reference.referenceLocator, reference.referenceType, msg])
 }
 
@@ -214,3 +246,5 @@ _to_semver(v) := trim_prefix(v, "v")
 _rule_data_packages_key := "disallowed_packages"
 
 _rule_data_allowed_external_references_key := "allowed_external_references"
+
+_rule_data_disallowed_external_references_key := "disallowed_external_references"
