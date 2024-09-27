@@ -3,6 +3,7 @@ package policy.release.sbom_spdx_test
 import rego.v1
 
 import data.lib
+import data.lib.sbom
 import data.policy.release.sbom_spdx
 
 test_all_good if {
@@ -125,7 +126,7 @@ test_external_references_allowed_regex_with_no_rules_is_allowed if {
 	expected := {}
 	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
 		with input.image.ref as "registry.local/spam@sha256:123"
-		with data.rule_data as {sbom_spdx._rule_data_allowed_external_references_key: []}
+		with data.rule_data as {sbom.rule_data_allowed_external_references_key: []}
 }
 
 test_external_references_allowed_regex if {
@@ -137,7 +138,7 @@ test_external_references_allowed_regex if {
 
 	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
 		with input.image.ref as "registry.local/spam@sha256:123"
-		with data.rule_data as {sbom_spdx._rule_data_allowed_external_references_key: [{
+		with data.rule_data as {sbom.rule_data_allowed_external_references_key: [{
 			"type": "purl",
 			"referenceLocator": ".*allowed.net.*",
 		}]}
@@ -152,7 +153,7 @@ test_external_references_disallowed_regex if {
 
 	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
 		with input.image.ref as "registry.local/spam@sha256:123"
-		with data.rule_data as {sbom_spdx._rule_data_disallowed_external_references_key: [{
+		with data.rule_data as {sbom.rule_data_disallowed_external_references_key: [{
 			"type": "purl",
 			"url": ".*example.com.*",
 		}]}

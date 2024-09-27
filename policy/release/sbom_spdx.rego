@@ -22,7 +22,7 @@ import data.lib.sbom
 #     Make sure the build process produces an SPDX SBOM attestation.
 #
 deny contains result if {
-	count(_sboms) == 0
+	count(sbom.spdx_sboms) == 0
 	result := lib.result_helper(rego.metadata.chain(), [])
 }
 
@@ -40,7 +40,7 @@ deny contains result if {
 #   - redhat
 #
 deny contains result if {
-	some index, s in _sboms
+	some index, s in sbom.spdx_sboms
 	some violation in json.match_schema(s, schema_2_3)[1]
 	error := violation.error
 	result := lib.result_helper(rego.metadata.chain(), [index, error])
@@ -56,8 +56,8 @@ deny contains result if {
 #     Verify the SBOM is correctly identifying the package in the image.
 #
 deny contains result if {
-	some sbom in _sboms
-	count(sbom.packages) == 0
+	some s in sbom.spdx_sboms
+	count(s.packages) == 0
 	result := lib.result_helper(rego.metadata.chain(), [])
 }
 
@@ -75,11 +75,11 @@ deny contains result if {
 #   - redhat
 #
 deny contains result if {
-	some s in _sboms
+	some s in sbom.spdx_sboms
 	some pkg in s.packages
 	some ref in pkg.externalRefs
 	ref.referenceType == "purl"	
-	_contains(ref.referenceLocator, lib.rule_data(_rule_data_packages_key))
+	sbom.has_item(ref.referenceLocator, lib.rule_data(sbom.rule_data_packages_key))
 	result := lib.result_helper(rego.metadata.chain(), [ref.referenceLocator])
 }
 
@@ -100,10 +100,10 @@ deny contains result if {
 #   - policy_data
 #
 deny contains result if {
-	some s in _sboms
+	some s in sbom.spdx_sboms
 	some pkg in s.packages
 	some reference in pkg.externalRefs
-	some allowed in lib.rule_data(_rule_data_allowed_external_references_key)
+	some allowed in lib.rule_data(sbom.rule_data_allowed_external_references_key)
 	reference.referenceType == allowed.type
 	not regex.match(object.get(allowed, "referenceLocator", ""), object.get(reference, "referenceLocator", ""))
 
@@ -130,10 +130,10 @@ deny contains result if {
 #   - policy_data
 #   effective_on: 2024-07-31T00:00:00Z
 deny contains result if {
-	some s in _sboms
+	some s in sbom.spdx_sboms
 	some pkg in s.packages
 	some reference in pkg.externalRefs
-	some disallowed in lib.rule_data(_rule_data_disallowed_external_references_key)
+	some disallowed in lib.rule_data(sbom.rule_data_disallowed_external_references_key)
 
 	reference.referenceType == disallowed.type
 	regex.match(object.get(disallowed, "referenceLocator", ""), object.get(reference, "url", ""))
@@ -154,8 +154,8 @@ deny contains result if {
 #     Verify the SBOM is correctly identifying the files in the image.
 #
 deny contains result if {
-	some sbom in _sboms
-	count(sbom.files) == 0
+	some s in sbom.spdx_sboms
+	count(s.files) == 0
 	result := lib.result_helper(rego.metadata.chain(), [])
 }
 
@@ -170,81 +170,9 @@ deny contains result if {
 #     Verify the integrity of the build system.
 #
 deny contains result if {
-	some sbom in _sboms
-	sbom_image := image.parse(sbom.name)
+	some s in sbom.spdx_sboms
+	sbom_image := image.parse(s.name)
 	expected_image := image.parse(input.image.ref)
 	sbom_image.digest != expected_image.digest
 	result := lib.result_helper(rego.metadata.chain(), [sbom_image.digest, expected_image.digest])
 }
-
-_sboms := [sbom |
-	some att in input.attestations
-	att.statement.predicateType == "https://spdx.dev/Document"
-	sbom := _predicate(att)
-]
-
-# _is_valid is true if the given SPDX SBOM has certain fields. This is
-# not an exhaustive schema check. It mostly ensures the fields used
-# by the policy rules in this package have been set.
-_is_valid(sbom) if {
-	sbom.name
-	name_ref := image.parse(sbom.name)
-	count(name_ref.digest) > 0
-	is_array(sbom.files)
-	is_array(sbom.packages)
-}
-
-# _predicate returns the predicate from the given attestation. If the
-# predicate is JSON marshaled, it is unmarshaled.
-_predicate(att) := predicate if {
-	json.is_valid(att.statement.predicate)
-	predicate := json.unmarshal(att.statement.predicate)
-} else := att.statement.predicate
-
-_contains(needle, haystack) if {
-	needle_purl := ec.purl.parse(needle)
-
-	some hay in haystack
-	hay_purl := ec.purl.parse(hay.purl)
-
-	needle_purl.type == hay_purl.type
-	needle_purl.namespace == hay_purl.namespace
-	needle_purl.name == hay_purl.name
-	_matches_version(needle_purl.version, hay)
-
-	not _excluded(needle_purl, object.get(hay, "exceptions", []))
-} else := false
-
-_excluded(purl, exceptions) if {
-	matches := [exception |
-		some exception in exceptions
-		exception.subpath == purl.subpath
-	]
-	count(matches) > 0
-}
-
-_matches_version(version, matcher) if {
-	matcher.format in {"semverv", "semver"}
-	matcher.min != ""
-	matcher.max != ""
-	semver.compare(_to_semver(version), _to_semver(matcher.min)) != -1
-	semver.compare(_to_semver(version), _to_semver(matcher.max)) != 1
-} else if {
-	matcher.format in {"semverv", "semver"}
-	matcher.min != ""
-	object.get(matcher, "max", "") == ""
-	semver.compare(_to_semver(version), _to_semver(matcher.min)) != -1
-} else if {
-	matcher.format in {"semverv", "semver"}
-	matcher.max != ""
-	object.get(matcher, "min", "") == ""
-	semver.compare(_to_semver(version), _to_semver(matcher.max)) != 1
-} else := false
-
-_to_semver(v) := trim_prefix(v, "v")
-
-_rule_data_packages_key := "disallowed_packages"
-
-_rule_data_allowed_external_references_key := "allowed_external_references"
-
-_rule_data_disallowed_external_references_key := "disallowed_external_references"
