@@ -140,7 +140,7 @@ test_external_references_allowed_regex if {
 		with input.image.ref as "registry.local/spam@sha256:123"
 		with data.rule_data as {sbom.rule_data_allowed_external_references_key: [{
 			"type": "purl",
-			"referenceLocator": ".*allowed.net.*",
+			"url": ".*allowed.net.*",
 		}]}
 }
 
@@ -148,14 +148,14 @@ test_external_references_disallowed_regex if {
 	expected := {{
 		"code": "sbom_spdx.disallowed_package_external_references",
 		# regal ignore:line-length
-		"msg": `Package spam has reference "pkg:oci/kernel-module-management-rhel9-operator@sha256%3Ad845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98" of type "purl" which is disallowed`,
+		"msg": `Package spam has reference "pkg:oci/kernel-module-management-rhel9-operator@sha256%3Ad845f0bd93dad56c92c47e8c116a11a0cc5924c0b99aed912b4f8b54178efa98" of type "purl" which is disallowed by pattern ".*kernel-module-management-rhel9-operator.*"`,
 	}}
 
 	lib.assert_equal_results(expected, sbom_spdx.deny) with input.attestations as [_sbom_attestation]
 		with input.image.ref as "registry.local/spam@sha256:123"
 		with data.rule_data as {sbom.rule_data_disallowed_external_references_key: [{
 			"type": "purl",
-			"url": ".*example.com.*",
+			"url": ".*kernel-module-management-rhel9-operator.*",
 		}]}
 }
 

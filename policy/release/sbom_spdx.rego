@@ -105,9 +105,9 @@ deny contains result if {
 	some reference in pkg.externalRefs
 	some allowed in lib.rule_data(sbom.rule_data_allowed_external_references_key)
 	reference.referenceType == allowed.type
-	not regex.match(object.get(allowed, "referenceLocator", ""), object.get(reference, "referenceLocator", ""))
+	not regex.match(object.get(allowed, "url", ""), object.get(reference, "referenceLocator", ""))
 
-	msg := regex.replace(object.get(allowed, "referenceLocator", ""), `(.+)`, ` by pattern "$1"`)
+	msg := regex.replace(object.get(allowed, "url", ""), `(.+)`, ` by pattern "$1"`)
 
 	# regal ignore:line-length
 	result := lib.result_helper(rego.metadata.chain(), [pkg.name, reference.referenceLocator, reference.referenceType, msg])
@@ -136,9 +136,9 @@ deny contains result if {
 	some disallowed in lib.rule_data(sbom.rule_data_disallowed_external_references_key)
 
 	reference.referenceType == disallowed.type
-	regex.match(object.get(disallowed, "referenceLocator", ""), object.get(reference, "url", ""))
+	regex.match(object.get(disallowed, "url", ""), object.get(reference, "referenceLocator", ""))
 
-	msg := regex.replace(object.get(disallowed, "referenceLocator", ""), `(.+)`, ` by pattern "$1"`)
+	msg := regex.replace(object.get(disallowed, "url", ""), `(.+)`, ` by pattern "$1"`)
 
 	# regal ignore:line-length
 	result := lib.result_helper(rego.metadata.chain(), [pkg.name, reference.referenceLocator, reference.referenceType, msg])
@@ -175,4 +175,24 @@ deny contains result if {
 	expected_image := image.parse(input.image.ref)
 	sbom_image.digest != expected_image.digest
 	result := lib.result_helper(rego.metadata.chain(), [sbom_image.digest, expected_image.digest])
+}
+
+# METADATA
+# title: Disallowed packages list is provided
+# description: >-
+#   Confirm the `disallowed_packages` and `disallowed_attributes` rule data were
+#   provided, since they are required by the policy rules in this package.
+# custom:
+#   short_name: disallowed_packages_provided
+#   failure_msg: "%s"
+#   solution: >-
+#     Provide a list of disallowed packages or package attributes in the
+#     expected format.
+#   collections:
+#   - redhat
+#   - policy_data
+#
+deny contains result if {
+	some error in sbom.rule_data_errors
+	result := lib.result_helper(rego.metadata.chain(), [error])
 }
