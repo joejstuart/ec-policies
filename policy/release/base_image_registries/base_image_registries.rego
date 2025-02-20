@@ -72,6 +72,8 @@ deny contains result if {
 	# is attached to the image.
 	count(sbom.all_sboms) == 0
 
+	# some s in sbom._spdx_sboms_from_oci
+
 	result := lib.result_helper(rego.metadata.chain(), [])
 }
 
