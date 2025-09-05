@@ -366,76 +366,10 @@ test_subscriptions_annotation_format if {
 		with data.rule_data.allowed_olm_resource_kinds as ["ClusterServiceVersion"]
 }
 
-test_unpinned_snapshot_references_operator if {
-	expected := {{
-		"code": "olm.unpinned_snapshot_references",
-		"msg": "The \"registry.io/repo/msd:no_digest\" image reference is not pinned in the input snapshot.",
-		"term": "registry.io/repo/msd:no_digest",
-	}}
-	lib.assert_equal_results(olm.deny, expected) with input.snapshot.components as [unpinned_component, component1]
-		with data.rule_data.pipeline_intention as "release"
-		with data.rule_data.allowed_olm_image_registry_prefixes as ["registry.io"]
-		with ec.oci.image_manifest as `{"config": {"digest": "sha256:goat"}}`
-		with input.image.ref as unpinned_component.containerImage
-		with data.rule_data.allowed_olm_resource_kinds as ["ClusterServiceVersion"]
-}
 
-test_unpinned_snapshot_references_different_input if {
-	lib.assert_empty(olm.deny) with input.snapshot.components as [unpinned_component]
-		with data.rule_data.pipeline_intention as "release"
-		with data.rule_data.allowed_olm_image_registry_prefixes as ["registry.io"]
-		with ec.oci.image_manifest as `{"config": {"digest": "sha256:goat"}}`
-		with input.image.ref as pinned2
-}
 
-test_unmapped_references_in_operator if {
-	expected := {{
-		"code": "olm.unmapped_references",
-		"msg": "The \"registry.io/repository/image2@sha256:tea\" CSV image reference is not in the snapshot or accessible.",
-		"term": "registry.io/repository/image2@sha256:tea",
-	}}
 
-	lib.assert_equal_results(olm.deny, expected) with input.snapshot.components as [component1]
-		with input.image.files as {"manifests/csv.yaml": manifest}
-		with data.rule_data as {"pipeline_intention": "release", "allowed_olm_image_registry_prefixes": ["registry.io"]}
-		with data.rule_data.allowed_olm_resource_kinds as ["ClusterServiceVersion"]
-		with ec.oci.image_manifest as _mock_image_partial
-		with ec.oci.descriptor as mock_ec_oci_image_descriptor
-		with input.image.config.Labels as {olm.manifestv1: "manifests/"}
-}
 
-test_unpinned_related_images if {
-	expected_deny := {{
-		"code": "olm.unpinned_related_images",
-		"msg": "2 related images are not pinned with a digest: registry.io/repo/msd:latest, registry.io/repo/msd:latest.",
-	}}
-
-	lib.assert_equal_results(olm.deny, expected_deny) with data.rule_data.pipeline_intention as "release"
-		with data.rule_data.allowed_olm_image_registry_prefixes as ["registry.io"]
-		with input.snapshot.components as [component0]
-		with input.attestations as _with_related_images
-		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
-		with ec.oci.image_manifest as _mock_unpinned_image_partial
-		with ec.oci.blob as _mock_unpinned_blob
-		with ec.oci.descriptor as mock_ec_oci_image_descriptor
-}
-
-test_inaccessible_related_images if {
-	expected_deny := {{
-		"code": "olm.inaccessible_related_images",
-		"msg": "The \"registry.io/repository/image2@sha256:tea\" related image reference is not accessible.",
-		"term": "registry.io/repository/image2@sha256:tea",
-	}}
-
-	lib.assert_equal_results(olm.deny, expected_deny) with data.rule_data.pipeline_intention as "release"
-		with data.rule_data.allowed_olm_image_registry_prefixes as ["registry.io"]
-		with input.snapshot.components as [component1]
-		with input.attestations as _with_related_images
-		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
-		with ec.oci.image_manifest as _mock_image_partial
-		with ec.oci.blob as _mock_blob
-		with ec.oci.descriptor as mock_ec_oci_image_descriptor
-}
 
 mock_ec_oci_image_descriptor("registry.io/repository/image@sha256:cafe") := `{"config": {"digest": "sha256:cafe"}}`
 
@@ -445,11 +379,6 @@ mock_ec_oci_image_descriptor("registry.io/repository/image2@sha256:tea") := fals
 
 mock_ec_oci_image_descriptor("registry.io/repo/msd:latest") := `{"config": {"digest": ""}}`
 
-test_olm_ci_pipeline if {
-	# Make sure no violations are thrown if it isn't a release pipeline
-	# regal ignore:line-length
-	lib.assert_equal(false, lib.pipeline_intention_match(rego.metadata.chain())) with data.rule_data as {"pipeline_intention": null}
-}
 
 test_mock_cafe_descriptor if {
 	# Test case that uses the mock_ec_oci_image_descriptor for cafe image

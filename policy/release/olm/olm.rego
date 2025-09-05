@@ -123,109 +123,8 @@ deny contains result if {
 	result := lib.result_helper_with_severity(rego.metadata.chain(), [e.message], e.severity)
 }
 
-# METADATA
-# title: Unpinned images in input snapshot
-# description: >-
-#   Check the input snapshot for the presence of unpinned image references.
-#   Unpinned image pull references are references to images
-#   that do not contain a digest -- uniquely identifying the version of
-#   the image being pulled.
-# custom:
-#   short_name: unpinned_snapshot_references
-#   pipeline_intention:
-#   - release
-#   - production
-#   - staging
-#   failure_msg: The %q image reference is not pinned in the input snapshot.
-#   solution: >-
-#     Update the input snapshot replacing the unpinned image reference with pinned image
-#     reference. Pinned image reference contains the image digest.
-#   collections:
-#   - redhat
-#   effective_on: 2024-08-15T00:00:00Z
-#
-deny contains result if {
-	lib.pipeline_intention_match(rego.metadata.chain())
 
-	input_image = image.parse(input.image.ref)
-	components := input.snapshot.components
-	some component in components
-	parsed_image := image.parse(component.containerImage)
-	parsed_image.repo == input_image.repo
-	parsed_image.digest == "" # unpinned image references have no digest
 
-	result := lib.result_helper_with_term(rego.metadata.chain(), [image.str(parsed_image)], image.str(parsed_image))
-}
-
-# METADATA
-# title: Unpinned related images for a component
-# description: >-
-#   Check the input image for the presence of related images.
-#   Ensure all related image references include a digest.
-# custom:
-#   short_name: unpinned_related_images
-#   pipeline_intention:
-#   - release
-#   - production
-#   - staging
-#   failure_msg: "%d related images are not pinned with a digest: %s."
-#   solution: >-
-#     Update the related images replacing the unpinned image reference
-#     with pinned image reference. Pinned image reference contains the image digest
-#   collections:
-#   - redhat
-#
-deny contains result if {
-	lib.pipeline_intention_match(rego.metadata.chain())
-
-	unpinned_related_images := [related |
-		some related in _related_images_not_in_snapshot
-
-		# If the image ref is not pinned this will be an empty string
-		related.digest == ""
-	]
-
-	# If any are unpinned we produce the violation
-	count(unpinned_related_images) > 0
-
-	unpinned_refs := [_image_ref(r) | some r in unpinned_related_images]
-
-	result := lib.result_helper(rego.metadata.chain(), [count(unpinned_related_images), concat(", ", unpinned_refs)])
-}
-
-# METADATA
-# title: Unable to access related images for a component
-# description: >-
-#   Check the input image for the presence of related images.
-#   Ensure that all images are accessible.
-# custom:
-#   short_name: inaccessible_related_images
-#   pipeline_intention:
-#   - release
-#   - production
-#   - staging
-#   failure_msg: The %q related image reference is not accessible.
-#   solution: >-
-#     Ensure all related images are available. The related images are defined by
-#     an file containing a json array attached to the validated image. The digest
-#     of the attached file is pulled from the RELATED_IMAGES_DIGEST result.
-#   collections:
-#   - redhat
-#   effective_on: 2025-03-10T00:00:00Z
-#
-deny contains result if {
-	lib.pipeline_intention_match(rego.metadata.chain())
-
-	some unmatched_image in _related_images_not_in_snapshot
-	unmatched_ref := _image_ref(unmatched_image)
-
-	# Add a check here to ensure unmatched_ref is not empty or malformed
-	unmatched_ref != ""
-
-	not ec.oci.descriptor(unmatched_ref)
-
-	result := lib.result_helper_with_term(rego.metadata.chain(), [unmatched_ref], unmatched_ref)
-}
 
 # METADATA
 # title: Related images references are from allowed registries
@@ -257,49 +156,6 @@ deny contains result if {
 	result := lib.result_helper_with_term(rego.metadata.chain(), [img_str], img.repo)
 }
 
-# METADATA
-# title: Unmapped images in OLM bundle
-# description: >-
-#   Check the OLM bundle image for the presence of unmapped image references.
-#   Unmapped image pull references are references to images found in
-#   link:https://osbs.readthedocs.io/en/latest/users.html#pullspec-locations[varying
-#   locations] that are either not in the RPA about to be released or not accessible
-#   already.
-# custom:
-#   short_name: unmapped_references
-#   pipeline_intention:
-#   - release
-#   - production
-#   - staging
-#   failure_msg: The %q CSV image reference is not in the snapshot or accessible.
-#   solution: >-
-#     Add the missing image to the snapshot or check if the CSV pullspec
-#     is valid and accessible.
-#   collections:
-#   - redhat
-#   effective_on: 2024-08-15T00:00:00Z
-deny contains result if {
-	lib.pipeline_intention_match(rego.metadata.chain())
-
-	snapshot_components := input.snapshot.components
-	component_images_digests := [component_image.digest |
-		some component in snapshot_components
-		component_image := image.parse(component.containerImage)
-	]
-
-	some manifest in _csv_manifests
-	all_image_refs := all_image_ref(manifest)
-	unmatched_image_refs := [image |
-		some image in all_image_refs
-		not image.ref.digest in component_images_digests
-	]
-
-	some unmatched_image in unmatched_image_refs
-	not ec.oci.image_manifest(image.str(unmatched_image.ref))
-
-	# regal ignore:line-length
-	result := lib.result_helper_with_term(rego.metadata.chain(), [image.str(unmatched_image.ref)], image.str(unmatched_image.ref))
-}
 
 # METADATA
 # title: Images referenced by OLM bundle are from allowed registries
