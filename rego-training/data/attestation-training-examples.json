@@ -1,0 +1,455 @@
+{
+  "schema_version": "1.0",
+  "description": "Training data mapping natural language to attestation JSON paths and Rego code patterns",
+  "examples": [
+    {
+      "id": "prefetch-dependencies-mode",
+      "natural_language": "Verify the prefetch-dependencies task in the PipelineRun attestation was not invoked with the 'permissive' mode parameter.",
+      "json_paths": {
+        "attestations": "input.attestations",
+        "tasks": "attestation.statement.predicate.buildConfig.tasks",
+        "task_name": "task.name",
+        "parameter_object": "task.invocation.parameters",
+        "parameter_value": "task.invocation.parameters.mode"
+      },
+      "navigation_steps": [
+        {
+          "step": 1,
+          "action": "iterate",
+          "description": "Loop over all attestations",
+          "path": "input.attestations",
+          "variable": "attestation",
+          "rego_syntax": "some attestation in input.attestations"
+        },
+        {
+          "step": 2,
+          "action": "iterate",
+          "description": "Loop over all tasks in the attestation",
+          "path": "attestation.statement.predicate.buildConfig.tasks",
+          "variable": "task",
+          "rego_syntax": "some task in attestation.statement.predicate.buildConfig.tasks"
+        },
+        {
+          "step": 3,
+          "action": "filter",
+          "description": "Select task with specific name",
+          "path": "task.name",
+          "operator": "==",
+          "value": "prefetch-dependencies",
+          "rego_syntax": "task.name == \"prefetch-dependencies\""
+        },
+        {
+          "step": 4,
+          "action": "check",
+          "description": "Check parameter value",
+          "path": "task.invocation.parameters.mode",
+          "operator": "==",
+          "value": "permissive",
+          "rego_syntax": "task.invocation.parameters.mode == \"permissive\""
+        }
+      ],
+      "expected_rego": {
+        "rule_type": "deny",
+        "code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    task.invocation.parameters.mode == \"permissive\"\n    result := \"prefetch-dependencies mode is permissive\"\n}"
+      },
+      "key_concepts": [
+        "iterating over attestations",
+        "iterating over tasks",
+        "filtering by task name",
+        "accessing task parameters",
+        "checking parameter values"
+      ]
+    },
+    {
+      "id": "task-status-check",
+      "natural_language": "Verify all tasks in the PipelineRun attestation completed successfully.",
+      "json_paths": {
+        "attestations": "input.attestations",
+        "tasks": "attestation.statement.predicate.buildConfig.tasks",
+        "task_status": "task.status"
+      },
+      "navigation_steps": [
+        {
+          "step": 1,
+          "action": "iterate",
+          "description": "Loop over all attestations",
+          "path": "input.attestations",
+          "variable": "attestation",
+          "rego_syntax": "some attestation in input.attestations"
+        },
+        {
+          "step": 2,
+          "action": "iterate",
+          "description": "Loop over all tasks",
+          "path": "attestation.statement.predicate.buildConfig.tasks",
+          "variable": "task",
+          "rego_syntax": "some task in attestation.statement.predicate.buildConfig.tasks"
+        },
+        {
+          "step": 3,
+          "action": "check",
+          "description": "Check task status is not Succeeded",
+          "path": "task.status",
+          "operator": "!=",
+          "value": "Succeeded",
+          "rego_syntax": "task.status != \"Succeeded\""
+        }
+      ],
+      "expected_rego": {
+        "rule_type": "deny",
+        "code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status != \"Succeeded\"\n    result := sprintf(\"Task %s did not succeed\", [task.name])\n}"
+      },
+      "key_concepts": [
+        "iterating over attestations",
+        "iterating over tasks",
+        "checking task status"
+      ]
+    },
+    {
+      "id": "task-bundle-check",
+      "natural_language": "Verify that a task named 'build' uses a trusted bundle reference.",
+      "json_paths": {
+        "attestations": "input.attestations",
+        "tasks": "attestation.statement.predicate.buildConfig.tasks",
+        "task_name": "task.name",
+        "task_ref": "task.ref",
+        "bundle": "task.ref.bundle"
+      },
+      "navigation_steps": [
+        {
+          "step": 1,
+          "action": "iterate",
+          "description": "Loop over all attestations",
+          "path": "input.attestations",
+          "variable": "attestation",
+          "rego_syntax": "some attestation in input.attestations"
+        },
+        {
+          "step": 2,
+          "action": "iterate",
+          "description": "Loop over all tasks",
+          "path": "attestation.statement.predicate.buildConfig.tasks",
+          "variable": "task",
+          "rego_syntax": "some task in attestation.statement.predicate.buildConfig.tasks"
+        },
+        {
+          "step": 3,
+          "action": "filter",
+          "description": "Select task with specific name",
+          "path": "task.name",
+          "operator": "==",
+          "value": "build",
+          "rego_syntax": "task.name == \"build\""
+        },
+        {
+          "step": 4,
+          "action": "extract",
+          "description": "Extract bundle reference",
+          "path": "task.ref.bundle",
+          "variable": "bundle",
+          "rego_syntax": "bundle := task.ref.bundle"
+        },
+        {
+          "step": 5,
+          "action": "check",
+          "description": "Check if bundle is in trusted list",
+          "path": "bundle",
+          "operator": "not_in",
+          "value": "trusted_bundles",
+          "rego_syntax": "not bundle in trusted_bundles"
+        }
+      ],
+      "expected_rego": {
+        "rule_type": "deny",
+        "code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    bundle := task.ref.bundle\n    not bundle in trusted_bundles\n    result := sprintf(\"Task %s uses untrusted bundle %s\", [task.name, bundle])\n}"
+      },
+      "key_concepts": [
+        "iterating over attestations",
+        "iterating over tasks",
+        "filtering by task name",
+        "accessing task reference",
+        "checking bundle against trusted list"
+      ]
+    },
+    {
+      "id": "task-result-check",
+      "natural_language": "Verify that the build task produced a result named 'IMAGE_URL'.",
+      "json_paths": {
+        "attestations": "input.attestations",
+        "tasks": "attestation.statement.predicate.buildConfig.tasks",
+        "task_name": "task.name",
+        "results": "task.results",
+        "result_name": "result.name",
+        "result_value": "result.value"
+      },
+      "navigation_steps": [
+        {
+          "step": 1,
+          "action": "iterate",
+          "description": "Loop over all attestations",
+          "path": "input.attestations",
+          "variable": "attestation",
+          "rego_syntax": "some attestation in input.attestations"
+        },
+        {
+          "step": 2,
+          "action": "iterate",
+          "description": "Loop over all tasks",
+          "path": "attestation.statement.predicate.buildConfig.tasks",
+          "variable": "task",
+          "rego_syntax": "some task in attestation.statement.predicate.buildConfig.tasks"
+        },
+        {
+          "step": 3,
+          "action": "filter",
+          "description": "Select task with specific name",
+          "path": "task.name",
+          "operator": "==",
+          "value": "build",
+          "rego_syntax": "task.name == \"build\""
+        },
+        {
+          "step": 4,
+          "action": "check",
+          "description": "Check if result name exists in results",
+          "path": "task.results",
+          "operator": "contains",
+          "value": "IMAGE_URL",
+          "rego_syntax": "not \"IMAGE_URL\" in {r.name | some r in task.results}"
+        }
+      ],
+      "expected_rego": {
+        "rule_type": "deny",
+        "code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not \"IMAGE_URL\" in {r.name | some r in task.results}\n    result := \"Build task did not produce IMAGE_URL result\"\n}"
+      },
+      "key_concepts": [
+        "iterating over attestations",
+        "iterating over tasks",
+        "filtering by task name",
+        "accessing task results",
+        "checking result existence"
+      ]
+    },
+    {
+      "id": "task-annotation-check",
+      "natural_language": "Verify that a task has a specific annotation key-value pair.",
+      "json_paths": {
+        "attestations": "input.attestations",
+        "tasks": "attestation.statement.predicate.buildConfig.tasks",
+        "annotations": "task.invocation.environment.annotations",
+        "annotation_key": "annotation_key",
+        "annotation_value": "annotation_value"
+      },
+      "navigation_steps": [
+        {
+          "step": 1,
+          "action": "iterate",
+          "description": "Loop over all attestations",
+          "path": "input.attestations",
+          "variable": "attestation",
+          "rego_syntax": "some attestation in input.attestations"
+        },
+        {
+          "step": 2,
+          "action": "iterate",
+          "description": "Loop over all tasks",
+          "path": "attestation.statement.predicate.buildConfig.tasks",
+          "variable": "task",
+          "rego_syntax": "some task in attestation.statement.predicate.buildConfig.tasks"
+        },
+        {
+          "step": 3,
+          "action": "iterate",
+          "description": "Loop over annotations",
+          "path": "task.invocation.environment.annotations",
+          "variable": "annotation_key",
+          "rego_syntax": "some annotation_key, annotation_value in task.invocation.environment.annotations"
+        },
+        {
+          "step": 4,
+          "action": "check",
+          "description": "Check annotation key and value",
+          "path": "annotation_key",
+          "operator": "==",
+          "value": "<expected_key>",
+          "rego_syntax": "annotation_key == \"<expected_key>\""
+        }
+      ],
+      "expected_rego": {
+        "rule_type": "deny",
+        "code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some annotation_key, annotation_value in task.invocation.environment.annotations\n    annotation_key == \"<expected_key>\"\n    annotation_value != \"<expected_value>\"\n    result := sprintf(\"Task %s has incorrect annotation %s\", [task.name, annotation_key])\n}"
+      },
+      "key_concepts": [
+        "iterating over attestations",
+        "iterating over tasks",
+        "accessing task annotations",
+        "iterating over key-value pairs"
+      ]
+    }
+  ],
+  "common_patterns": {
+    "iterate_attestations": {
+      "description": "Loop over all attestations",
+      "rego": "some attestation in input.attestations",
+      "json_path": "input.attestations"
+    },
+    "iterate_tasks": {
+      "description": "Loop over tasks in an attestation",
+      "rego": "some task in attestation.statement.predicate.buildConfig.tasks",
+      "json_path": "attestation.statement.predicate.buildConfig.tasks"
+    },
+    "filter_by_task_name": {
+      "description": "Select a task by name",
+      "rego": "task.name == \"<task-name>\"",
+      "json_path": "task.name"
+    },
+    "check_parameter": {
+      "description": "Check a task parameter value",
+      "rego": "task.invocation.parameters.<param_name> == \"<value>\"",
+      "json_path": "task.invocation.parameters.<param_name>"
+    },
+    "check_result": {
+      "description": "Check if a task has a specific result",
+      "rego": "some result in task.results; result.name == \"<result_name>\"",
+      "json_path": "task.results"
+    },
+    "check_bundle": {
+      "description": "Check task bundle reference",
+      "rego": "bundle := task.ref.bundle",
+      "json_path": "task.ref.bundle"
+    },
+    "check_status": {
+      "description": "Check task status",
+      "rego": "task.status == \"<status>\"",
+      "json_path": "task.status"
+    }
+  },
+  "json_structure_reference": {
+    "root": {
+      "path": "input",
+      "description": "Root input object"
+    },
+    "attestations": {
+      "path": "input.attestations",
+      "type": "array",
+      "description": "Array of attestation objects"
+    },
+    "attestation": {
+      "path": "attestation",
+      "type": "object",
+      "description": "Single attestation object"
+    },
+    "statement": {
+      "path": "attestation.statement",
+      "type": "object",
+      "description": "In-toto statement object"
+    },
+    "predicate": {
+      "path": "attestation.statement.predicate",
+      "type": "object",
+      "description": "Predicate data (build information)"
+    },
+    "buildConfig": {
+      "path": "attestation.statement.predicate.buildConfig",
+      "type": "object",
+      "description": "Build configuration (SLSA v0.2)",
+      "note": "For SLSA v0.2 format"
+    },
+    "buildDefinition": {
+      "path": "attestation.statement.predicate.buildDefinition",
+      "type": "object",
+      "description": "Build definition (SLSA v1.0)",
+      "note": "For SLSA v1.0 format"
+    },
+    "tasks": {
+      "path": "attestation.statement.predicate.buildConfig.tasks",
+      "type": "array",
+      "description": "Array of task objects (SLSA v0.2)"
+    },
+    "task": {
+      "path": "task",
+      "type": "object",
+      "description": "Single task object"
+    },
+    "task_name": {
+      "path": "task.name",
+      "type": "string",
+      "description": "Name of the task (pipeline task name)"
+    },
+    "task_invocation": {
+      "path": "task.invocation",
+      "type": "object",
+      "description": "Task invocation information"
+    },
+    "task_parameters": {
+      "path": "task.invocation.parameters",
+      "type": "object",
+      "description": "Task parameters as key-value pairs"
+    },
+    "task_config_source": {
+      "path": "task.invocation.configSource",
+      "type": "object",
+      "description": "Source configuration for the task"
+    },
+    "task_environment": {
+      "path": "task.invocation.environment",
+      "type": "object",
+      "description": "Environment information"
+    },
+    "task_annotations": {
+      "path": "task.invocation.environment.annotations",
+      "type": "object",
+      "description": "Kubernetes annotations"
+    },
+    "task_labels": {
+      "path": "task.invocation.environment.labels",
+      "type": "object",
+      "description": "Kubernetes labels"
+    },
+    "task_ref": {
+      "path": "task.ref",
+      "type": "object",
+      "description": "Task reference (bundle/definition)"
+    },
+    "task_bundle": {
+      "path": "task.ref.bundle",
+      "type": "string",
+      "description": "OCI bundle reference"
+    },
+    "task_results": {
+      "path": "task.results",
+      "type": "array",
+      "description": "Array of task results"
+    },
+    "task_status": {
+      "path": "task.status",
+      "type": "string",
+      "description": "Task status (e.g., 'Succeeded', 'Failed')"
+    },
+    "task_finished": {
+      "path": "task.finishedOn",
+      "type": "string",
+      "description": "ISO 8601 timestamp when task finished"
+    },
+    "task_started": {
+      "path": "task.startedOn",
+      "type": "string",
+      "description": "ISO 8601 timestamp when task started"
+    },
+    "metadata": {
+      "path": "attestation.statement.predicate.metadata",
+      "type": "object",
+      "description": "Build metadata"
+    },
+    "build_finished": {
+      "path": "attestation.statement.predicate.metadata.buildFinishedOn",
+      "type": "string",
+      "description": "ISO 8601 timestamp when build finished"
+    },
+    "build_started": {
+      "path": "attestation.statement.predicate.metadata.buildStartedOn",
+      "type": "string",
+      "description": "ISO 8601 timestamp when build started"
+    }
+  }
+}

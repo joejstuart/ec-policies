@@ -1,0 +1,281 @@
+{
+  "examples": {
+    "single_key_example": {
+      "description": "Example of a simple test case checking a single key/property",
+      "natural_language": "Verify the build task has status 'Succeeded'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.status != \"Succeeded\"\n    result := sprintf(\"Build task status is %s, expected Succeeded\", [task.status])\n}",
+      "keys_used": [
+        "task.name",
+        "task.status"
+      ],
+      "test_cases": [
+        {
+          "name": "should_deny_when_status_not_succeeded",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [{
+                      "name": "build",
+                      "status": "Failed",
+                      "ref": {"name": "build", "kind": "Task"}
+                    }]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": true,
+          "expected_msg_contains": "status"
+        },
+        {
+          "name": "should_pass_when_status_succeeded",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [{
+                      "name": "build",
+                      "status": "Succeeded",
+                      "ref": {"name": "build", "kind": "Task"}
+                    }]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": false
+        }
+      ],
+      "notes": "This is a simple test case that checks a single property (task.status) after filtering by task name. Note: Always starts with 'some attestation in input.attestations'."
+    },
+    "compound_example": {
+      "description": "Example of a compound test case checking multiple keys across all tasks",
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a bundle reference with a digest (contains @sha256:).",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"@sha256:\")\n    result := sprintf(\"Task %s uses bundle without digest: %s\", [task.name, bundle])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "test_cases": [
+        {
+          "name": "should_deny_when_bundle_missing_digest",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [
+                      {
+                        "name": "build",
+                        "ref": {
+                          "name": "build",
+                          "kind": "Task",
+                          "bundle": "quay.io/example/task-build:latest"
+                        }
+                      },
+                      {
+                        "name": "test",
+                        "ref": {
+                          "name": "test",
+                          "kind": "Task",
+                          "bundle": "quay.io/example/task-test@sha256:abc123"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": true,
+          "expected_msg_contains": "without digest"
+        },
+        {
+          "name": "should_pass_when_all_bundles_have_digest",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [
+                      {
+                        "name": "build",
+                        "ref": {
+                          "name": "build",
+                          "kind": "Task",
+                          "bundle": "quay.io/example/task-build@sha256:def456"
+                        }
+                      },
+                      {
+                        "name": "test",
+                        "ref": {
+                          "name": "test",
+                          "kind": "Task",
+                          "bundle": "quay.io/example/task-test@sha256:abc123"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": false
+        },
+        {
+          "name": "should_pass_when_no_tasks",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": []
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": false
+        }
+      ],
+      "notes": "This is a compound test case that loops over ALL tasks (not filtering by name) and checks multiple properties (bundle existence and digest presence) for each task. Note: Always starts with 'some attestation in input.attestations'."
+    },
+    "compound_with_parameters_example": {
+      "description": "Example of compound test case checking parameters across all tasks",
+      "natural_language": "Verify all tasks that have a 'mode' parameter do not have it set to 'permissive'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.invocation.parameters.mode == \"permissive\"\n    result := sprintf(\"Task %s has mode parameter set to permissive\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters.mode",
+        "task.name"
+      ],
+      "test_cases": [
+        {
+          "name": "should_deny_when_any_task_has_permissive_mode",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [
+                      {
+                        "name": "task1",
+                        "ref": {"name": "task1", "kind": "Task"},
+                        "invocation": {
+                          "parameters": {"mode": "strict"}
+                        }
+                      },
+                      {
+                        "name": "task2",
+                        "ref": {"name": "task2", "kind": "Task"},
+                        "invocation": {
+                          "parameters": {"mode": "permissive"}
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": true,
+          "expected_msg_contains": "permissive"
+        },
+        {
+          "name": "should_pass_when_no_tasks_have_permissive_mode",
+          "input": {
+            "attestations": [{
+              "statement": {
+                "_type": "https://in-toto.io/Statement/v0.1",
+                "predicateType": "https://slsa.dev/provenance/v0.2",
+                "predicate": {
+                  "buildType": "tekton.dev/v1/PipelineRun",
+                  "buildConfig": {
+                    "tasks": [
+                      {
+                        "name": "task1",
+                        "ref": {"name": "task1", "kind": "Task"},
+                        "invocation": {
+                          "parameters": {"mode": "strict"}
+                        }
+                      },
+                      {
+                        "name": "task2",
+                        "ref": {"name": "task2", "kind": "Task"},
+                        "invocation": {
+                          "parameters": {"other_param": "value"}
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }]
+          },
+          "should_deny": false
+        }
+      ],
+      "notes": "This compound test case loops over all tasks and checks if any task has a specific parameter value, without filtering by task name first. Note: Always starts with 'some attestation in input.attestations'."
+    },
+    "variable_naming_example": {
+      "description": "Example showing correct variable naming to avoid reuse",
+      "natural_language": "Verify that the build task has a result named 'IMAGE_URL' with a non-empty value.",
+      "rego_code_correct": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some task_result in task.results\n    task_result.name == \"IMAGE_URL\"\n    task_result.value == \"\"\n    result := \"Build task IMAGE_URL result is empty\"\n}",
+      "rego_code_incorrect": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some result in task.results\n    result.name == \"IMAGE_URL\"\n    result := \"Build task IMAGE_URL result is empty\"\n}",
+      "explanation": "The incorrect version reuses 'result' - first as loop variable, then as output. The correct version uses 'task_result' for the loop variable and 'result' only for the output.",
+      "variable_naming_rules": [
+        "Output variable: Always use 'result' for the deny output",
+        "Attestation loop: Use 'attestation' (standard)",
+        "Task loop: Use 'task' (standard)",
+        "Result loop: Use 'task_result' or 'r' (NOT 'result')",
+        "Parameter loop: Use 'param' or 'param_key' (NOT 'result')",
+        "Annotation loop: Use 'annotation_key', 'annotation_value' (NOT 'result')",
+        "Label loop: Use 'label_key', 'label_value' (NOT 'result')",
+        "Material loop: Use 'material' (NOT 'result')",
+        "Subject loop: Use 'subject' (NOT 'result')",
+        "Any intermediate variable: Use descriptive names like 'bundle', 'timestamp', 'value' (NOT 'result')"
+      ]
+    }
+  },
+  "summary": {
+    "required_pattern": "ALL rules must start with: some attestation in input.attestations",
+    "variable_naming_rule": "NEVER reuse 'result' - it's reserved for the deny output. Use descriptive names for loop variables (task_result, r, param, etc.)",
+    "single_key_characteristics": [
+      "ALWAYS starts with: some attestation in input.attestations",
+      "Checks a single property after filtering by task name",
+      "Simple condition: task.name == X AND task.property == Y",
+      "Usually checks one specific task",
+      "Example: Check if build task status is Succeeded"
+    ],
+    "compound_characteristics": [
+      "ALWAYS starts with: some attestation in input.attestations",
+      "Loops over ALL tasks (no name filter)",
+      "Checks multiple properties or conditions",
+      "Validates across all tasks in the attestation",
+      "Example: Check all tasks have bundle with digest",
+      "Example: Check all tasks with parameter X don't have value Y"
+    ]
+  }
+}

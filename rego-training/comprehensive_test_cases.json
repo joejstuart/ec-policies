@@ -1,0 +1,2130 @@
+{
+  "metadata": {
+    "total_test_cases": 224,
+    "single_key_cases": 90,
+    "compound_cases": 134,
+    "rules": [
+      "ALL rules start with: some attestation in input.attestations",
+      "NEVER reuse 'result' variable - reserved for deny output",
+      "Use descriptive variable names for loops (task_result, r, step, material, subject, etc.)"
+    ]
+  },
+  "test_cases": {
+    "top_level_001": {
+      "natural_language": "Verify the attestation statement has the correct _type field.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement._type != \"https://in-toto.io/Statement/v0.1\"\n    result := sprintf(\"Attestation has incorrect _type: %s\", [attestation.statement._type])\n}",
+      "keys_used": [
+        "attestation.statement._type"
+      ],
+      "type": "single_key"
+    },
+    "top_level_002": {
+      "natural_language": "Verify the attestation has predicateType 'https://slsa.dev/provenance/v0.2'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType != \"https://slsa.dev/provenance/v0.2\"\n    result := sprintf(\"Attestation has incorrect predicateType: %s\", [attestation.statement.predicateType])\n}",
+      "keys_used": [
+        "attestation.statement.predicateType"
+      ],
+      "type": "single_key"
+    },
+    "subject_003": {
+      "natural_language": "Verify the attestation has at least one subject image.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    count(attestation.statement.subject) == 0\n    result := \"Attestation has no subject images\"\n}",
+      "keys_used": [
+        "attestation.statement.subject"
+      ],
+      "type": "single_key"
+    },
+    "subject_004": {
+      "natural_language": "Verify all subject images in the attestation have a name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    not subject.name\n    result := \"Subject image does not have a name\"\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "subject_005": {
+      "natural_language": "Verify all subject images in the attestation have a digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    not subject.digest\n    result := sprintf(\"Subject image %s does not have a digest\", [subject.name])\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.digest",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "subject_006": {
+      "natural_language": "Verify all subject images in the attestation have a SHA256 digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    not subject.digest.sha256\n    result := sprintf(\"Subject image %s does not have SHA256 digest\", [subject.name])\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.digest.sha256",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "subject_007": {
+      "natural_language": "Verify the attestation has a subject image with name containing 'quay.io'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    subject_names := {s.name | some s in attestation.statement.subject}\n    not any([contains(name, \"quay.io\") | some name in subject_names])\n    result := \"No subject image contains quay.io\"\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.name"
+      ],
+      "type": "single_key"
+    },
+    "metadata_008": {
+      "natural_language": "Verify the build finished timestamp exists in the attestation metadata.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    not attestation.statement.predicate.metadata.buildFinishedOn\n    result := \"Attestation does not have buildFinishedOn timestamp\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.buildFinishedOn"
+      ],
+      "type": "single_key"
+    },
+    "metadata_009": {
+      "natural_language": "Verify the build started timestamp exists in the attestation metadata.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    not attestation.statement.predicate.metadata.buildStartedOn\n    result := \"Attestation does not have buildStartedOn timestamp\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.buildStartedOn"
+      ],
+      "type": "single_key"
+    },
+    "metadata_010": {
+      "natural_language": "Verify the build finished after it started.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    started := time.parse_rfc3339_ns(attestation.statement.predicate.metadata.buildStartedOn)\n    finished := time.parse_rfc3339_ns(attestation.statement.predicate.metadata.buildFinishedOn)\n    finished <= started\n    result := \"Build finished before or at the same time as it started\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.buildStartedOn",
+        "attestation.statement.predicate.metadata.buildFinishedOn"
+      ],
+      "type": "compound"
+    },
+    "metadata_011": {
+      "natural_language": "Verify the build metadata has a completeness field.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    not attestation.statement.predicate.metadata.completeness\n    result := \"Attestation does not have completeness metadata\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.completeness"
+      ],
+      "type": "single_key"
+    },
+    "metadata_012": {
+      "natural_language": "Verify the build completeness indicates environment is complete.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    completeness := attestation.statement.predicate.metadata.completeness\n    completeness.environment != true\n    result := \"Build completeness indicates environment is not complete\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.completeness.environment"
+      ],
+      "type": "single_key"
+    },
+    "metadata_013": {
+      "natural_language": "Verify the build completeness indicates materials are complete.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    completeness := attestation.statement.predicate.metadata.completeness\n    completeness.materials != true\n    result := \"Build completeness indicates materials are not complete\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.completeness.materials"
+      ],
+      "type": "single_key"
+    },
+    "metadata_014": {
+      "natural_language": "Verify the build completeness indicates parameters are complete.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    completeness := attestation.statement.predicate.metadata.completeness\n    completeness.parameters != true\n    result := \"Build completeness indicates parameters are not complete\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.completeness.parameters"
+      ],
+      "type": "single_key"
+    },
+    "metadata_015": {
+      "natural_language": "Verify the build is marked as reproducible.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicate.metadata.reproducible != true\n    result := \"Build is not marked as reproducible\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.reproducible"
+      ],
+      "type": "single_key"
+    },
+    "materials_016": {
+      "natural_language": "Verify the attestation has a materials section.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    not attestation.statement.predicate.materials\n    result := \"Attestation does not have materials section\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials"
+      ],
+      "type": "single_key"
+    },
+    "materials_017": {
+      "natural_language": "Verify the attestation has at least one material.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    count(attestation.statement.predicate.materials) == 0\n    result := \"Attestation has no materials\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials"
+      ],
+      "type": "single_key"
+    },
+    "materials_018": {
+      "natural_language": "Verify all materials in the attestation have a URI.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    not material.uri\n    result := \"Material does not have a URI\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "materials_019": {
+      "natural_language": "Verify all materials in the attestation have a digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    not material.digest\n    result := sprintf(\"Material %s does not have a digest\", [material.uri])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "materials_020": {
+      "natural_language": "Verify all materials in the attestation have a SHA256 digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    not material.digest.sha256\n    result := sprintf(\"Material %s does not have SHA256 digest\", [material.uri])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest.sha256",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "materials_021": {
+      "natural_language": "Verify all materials with SHA1 digest have a git URI.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    material.digest.sha1\n    not startswith(material.uri, \"git+\")\n    result := sprintf(\"Material with SHA1 digest has non-git URI: %s\", [material.uri])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest.sha1",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "materials_022": {
+      "natural_language": "Verify all materials with SHA1 digest have valid 40-character hex format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    commit := material.digest.sha1\n    commit\n    not regex.match(`^[a-f0-9]{40}$`, commit)\n    result := sprintf(\"Material SHA1 digest %s is not valid format\", [commit])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest.sha1"
+      ],
+      "type": "compound"
+    },
+    "task_023": {
+      "natural_language": "Verify the build task configSource has an entryPoint.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.invocation.configSource.entryPoint\n    result := \"Build task configSource does not have entryPoint\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.configSource.entryPoint"
+      ],
+      "type": "single_key"
+    },
+    "task_024": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a configSource with entryPoint.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.configSource.entryPoint\n    result := sprintf(\"Task %s configSource does not have entryPoint\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.entryPoint",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "task_025": {
+      "natural_language": "Verify the build task reference has params.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.ref.params\n    result := \"Build task reference does not have params\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.params"
+      ],
+      "type": "single_key"
+    },
+    "task_026": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have reference params.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.ref.params\n    result := sprintf(\"Task %s reference does not have params\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.params",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_027": {
+      "natural_language": "Verify the build task has at least one step with annotations.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some step in task.steps\n    not step.annotations\n    result := \"Build task has step without annotations\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.steps",
+        "step.annotations"
+      ],
+      "type": "single_key"
+    },
+    "step_028": {
+      "natural_language": "Verify all steps in all tasks have annotations.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.annotations\n    result := sprintf(\"Task %s has step without annotations\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_029": {
+      "natural_language": "Verify the build task has at least one step with arguments.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some step in task.steps\n    not step.arguments\n    result := \"Build task has step without arguments\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.steps",
+        "step.arguments"
+      ],
+      "type": "single_key"
+    },
+    "step_030": {
+      "natural_language": "Verify all steps in all tasks have arguments.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.arguments\n    result := sprintf(\"Task %s has step without arguments\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.arguments",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_031": {
+      "natural_language": "Verify the build task has at least one step with environment container set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some step in task.steps\n    not step.environment.container\n    result := \"Build task has step without environment container\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.steps",
+        "step.environment.container"
+      ],
+      "type": "single_key"
+    },
+    "step_032": {
+      "natural_language": "Verify all steps in all tasks have environment container set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.environment.container\n    result := sprintf(\"Task %s has step without environment container\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.container",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_033": {
+      "natural_language": "Verify all steps in all tasks have environment image with oci:// prefix.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    image := step.environment.image\n    image\n    not startswith(image, \"oci://\")\n    result := sprintf(\"Task %s has step with image not using oci:// prefix: %s\", [task.name, image])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.image",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_034": {
+      "natural_language": "Verify all steps in all tasks have environment image with digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    image := step.environment.image\n    image\n    not contains(image, \"@sha256:\")\n    result := sprintf(\"Task %s has step with image without digest: %s\", [task.name, image])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.image",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "slsa_v1_035": {
+      "natural_language": "Verify the attestation has buildDefinition with buildType 'https://tekton.dev/chains/v2/slsa-tekton'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    build_type := attestation.statement.predicate.buildDefinition.buildType\n    build_type != \"https://tekton.dev/chains/v2/slsa-tekton\"\n    result := sprintf(\"Attestation has incorrect buildType: %s\", [build_type])\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.buildType"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_036": {
+      "natural_language": "Verify the SLSA v1.0 attestation has externalParameters.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.externalParameters\n    result := \"SLSA v1.0 attestation does not have externalParameters\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.externalParameters"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_037": {
+      "natural_language": "Verify the SLSA v1.0 attestation has internalParameters.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.internalParameters\n    result := \"SLSA v1.0 attestation does not have internalParameters\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.internalParameters"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_038": {
+      "natural_language": "Verify the SLSA v1.0 attestation has runDetails with metadata.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.runDetails.metadata\n    result := \"SLSA v1.0 attestation does not have runDetails metadata\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.runDetails.metadata"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_039": {
+      "natural_language": "Verify the SLSA v1.0 attestation externalParameters has runSpec.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.externalParameters.runSpec\n    result := \"SLSA v1.0 attestation externalParameters does not have runSpec\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.externalParameters.runSpec"
+      ],
+      "type": "single_key"
+    },
+    "task_param_040": {
+      "natural_language": "Verify the git-clone task has the url parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.url\n    result := \"git-clone task does not have url parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.url"
+      ],
+      "type": "single_key"
+    },
+    "task_param_041": {
+      "natural_language": "Verify the git-clone task has the revision parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.revision\n    result := \"git-clone task does not have revision parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.revision"
+      ],
+      "type": "single_key"
+    },
+    "task_param_042": {
+      "natural_language": "Verify the git-clone task has the refspec parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.refspec\n    result := \"git-clone task does not have refspec parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.refspec"
+      ],
+      "type": "single_key"
+    },
+    "task_param_043": {
+      "natural_language": "Verify the git-clone task has the depth parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.depth\n    result := \"git-clone task does not have depth parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.depth"
+      ],
+      "type": "single_key"
+    },
+    "task_param_044": {
+      "natural_language": "Verify the git-clone task has the submodules parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.submodules\n    result := \"git-clone task does not have submodules parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.submodules"
+      ],
+      "type": "single_key"
+    },
+    "task_result_045": {
+      "natural_language": "Verify the git-clone task produced a result named 'commit'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"commit\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce commit result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "task_result_046": {
+      "natural_language": "Verify the git-clone task produced a result named 'url'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"url\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce url result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "task_result_047": {
+      "natural_language": "Verify the git-clone task produced a result named 'short-commit'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"short-commit\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce short-commit result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "task_result_048": {
+      "natural_language": "Verify the git-clone task produced a result named 'commit-timestamp'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"commit-timestamp\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce commit-timestamp result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "annotation_049": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/state' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/state\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/state\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_050": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/branch' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/branch\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/branch\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_051": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/event-type' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/event-type\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/event-type\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_052": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/pipelineRunUID' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineRunUID\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/pipelineRunUID\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_053": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'appstudio.openshift.io/application' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"appstudio.openshift.io/application\"]\n    result := sprintf(\"Task %s does not have label appstudio.openshift.io/application\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_054": {
+      "natural_language": "Verify all tasks that succeeded have at least one result.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status == \"Succeeded\"\n    count(task.results) == 0\n    result := sprintf(\"Task %s succeeded but has no results\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.results",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_055": {
+      "natural_language": "Verify all tasks with bundle references have both bundle and digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"@sha256:\")\n    not contains(bundle, \"@sha1:\")\n    result := sprintf(\"Task %s bundle %s does not have digest\", [task.name, bundle])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_056": {
+      "natural_language": "Verify all tasks that have an 'image-url' parameter produced an IMAGE_URL result.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.invocation.parameters[\"image-url\"]\n    not \"IMAGE_URL\" in {r.name | some r in task.results}\n    result := sprintf(\"Task %s has image-url parameter but no IMAGE_URL result\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.results",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_057": {
+      "natural_language": "Verify all tasks have both annotations and labels.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.environment.annotations\n    not task.invocation.environment.labels\n    result := sprintf(\"Task %s is missing annotations or labels\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_058": {
+      "natural_language": "Verify all tasks that have a status also have both started and finished timestamps.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status\n    (not task.startedOn or not task.finishedOn)\n    result := sprintf(\"Task %s has status but missing timestamps\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.startedOn",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "edge_059": {
+      "natural_language": "Verify the attestation has at least one task.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    count(attestation.statement.predicate.buildConfig.tasks) == 0\n    result := \"Attestation has no tasks\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks"
+      ],
+      "type": "single_key"
+    },
+    "edge_060": {
+      "natural_language": "Verify the attestation has at least one subject.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    count(attestation.statement.subject) == 0\n    result := \"Attestation has no subject images\"\n}",
+      "keys_used": [
+        "attestation.statement.subject"
+      ],
+      "type": "single_key"
+    },
+    "edge_061": {
+      "natural_language": "Verify the attestation has at least one material.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    count(attestation.statement.predicate.materials) == 0\n    result := \"Attestation has no materials\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials"
+      ],
+      "type": "single_key"
+    },
+    "edge_062": {
+      "natural_language": "Verify all subject images have names that are not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    subject.name == \"\"\n    result := \"Subject image has empty name\"\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "edge_063": {
+      "natural_language": "Verify all materials have URIs that are not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    material.uri == \"\"\n    result := \"Material has empty URI\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "edge_064": {
+      "natural_language": "Verify no two tasks in the PipelineRun attestation have the same name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    task_names := {task.name | some task in attestation.statement.predicate.buildConfig.tasks}\n    all_task_names := [task.name | some task in attestation.statement.predicate.buildConfig.tasks]\n    count(task_names) != count(all_task_names)\n    result := \"Tasks have duplicate names\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "task_param_065": {
+      "natural_language": "Verify the prefetch-dependencies task has the log-level parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    not task.invocation.parameters.log-level\n    result := \"prefetch-dependencies task does not have log-level parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.log-level"
+      ],
+      "type": "single_key"
+    },
+    "task_param_066": {
+      "natural_language": "Verify the prefetch-dependencies task has the config-file-content parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    not task.invocation.parameters.config-file-content\n    result := \"prefetch-dependencies task does not have config-file-content parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.config-file-content"
+      ],
+      "type": "single_key"
+    },
+    "task_param_067": {
+      "natural_language": "Verify the prefetch-dependencies task has the dev-package-managers parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    not task.invocation.parameters.dev-package-managers\n    result := \"prefetch-dependencies task does not have dev-package-managers parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.dev-package-managers"
+      ],
+      "type": "single_key"
+    },
+    "task_param_068": {
+      "natural_language": "Verify the build task has the skip-checks parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.invocation.parameters.skip-checks\n    result := \"build task does not have skip-checks parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.skip-checks"
+      ],
+      "type": "single_key"
+    },
+    "task_param_069": {
+      "natural_language": "Verify the test task has the test-command parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"test\"\n    not task.invocation.parameters.test-command\n    result := \"test task does not have test-command parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.test-command"
+      ],
+      "type": "single_key"
+    },
+    "compound_070": {
+      "natural_language": "Verify all tasks that have a 'log-level' parameter have it set to 'info' or 'debug'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    log_level := task.invocation.parameters[\"log-level\"]\n    log_level\n    not log_level in {\"info\", \"debug\", \"warn\", \"error\"}\n    result := sprintf(\"Task %s has invalid log-level: %s\", [task.name, log_level])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "task_result_071": {
+      "natural_language": "Verify the git-clone task produced a result named 'CHAINS-GIT_COMMIT'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"CHAINS-GIT_COMMIT\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce CHAINS-GIT_COMMIT result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "task_result_072": {
+      "natural_language": "Verify the git-clone task produced a result named 'CHAINS-GIT_URL'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not \"CHAINS-GIT_URL\" in {r.name | some r in task.results}\n    result := \"git-clone task did not produce CHAINS-GIT_URL result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "task_result_073": {
+      "natural_language": "Verify the prefetch-dependencies task produced a result named 'SOURCE_ARTIFACT'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    not \"SOURCE_ARTIFACT\" in {r.name | some r in task.results}\n    result := \"prefetch-dependencies task did not produce SOURCE_ARTIFACT result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "compound_074": {
+      "natural_language": "Verify all tasks that have results have at least one result with a non-empty value.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    count(task.results) > 0\n    all_empty := {r.name | some r in task.results; r.value == \"\"}\n    count(all_empty) == count(task.results)\n    result := sprintf(\"Task %s has all empty results\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name",
+        "result.value"
+      ],
+      "type": "compound"
+    },
+    "annotation_075": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/max-keep-runs' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/max-keep-runs\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/max-keep-runs\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_076": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/cancel-in-progress' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/cancel-in-progress\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/cancel-in-progress\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_077": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/git-auth-secret' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/git-auth-secret\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/git-auth-secret\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_078": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/installation-id' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/installation-id\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/installation-id\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_079": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/log-url' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/log-url\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/log-url\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_080": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/original-prname' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/original-prname\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/original-prname\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_081": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/pipeline' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/pipeline\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/pipeline\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_082": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/repository' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/repository\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/repository\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_083": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/sender' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/sender\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/sender\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_084": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/sha' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipelinesascode.tekton.dev/sha\"]\n    result := sprintf(\"Task %s does not have annotation pipelinesascode.tekton.dev/sha\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_085": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/pipelineRunUID' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineRunUID\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/pipelineRunUID\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_086": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'appstudio.openshift.io/application' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"appstudio.openshift.io/application\"]\n    result := sprintf(\"Task %s does not have label appstudio.openshift.io/application\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_087": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'appstudio.openshift.io/component' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"appstudio.openshift.io/component\"]\n    result := sprintf(\"Task %s does not have label appstudio.openshift.io/component\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_088": {
+      "natural_language": "Verify all steps in all tasks that have entryPoint have a non-empty entryPoint.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    step.entryPoint == \"\"\n    result := sprintf(\"Task %s has step with empty entryPoint\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.entryPoint",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_089": {
+      "natural_language": "Verify all steps in all tasks that have arguments have at least one argument.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    step.arguments\n    count(step.arguments) == 0\n    result := sprintf(\"Task %s has step with empty arguments array\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.arguments",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_090": {
+      "natural_language": "Verify all steps in all tasks have environment image in valid format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    image := step.environment.image\n    image\n    not startswith(image, \"oci://\")\n    not startswith(image, \"docker://\")\n    result := sprintf(\"Task %s has step with invalid image format: %s\", [task.name, image])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.image",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "materials_091": {
+      "natural_language": "Verify all materials with oci:// URI have SHA256 digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    startswith(material.uri, \"oci://\")\n    not material.digest.sha256\n    result := sprintf(\"Material with oci:// URI %s does not have SHA256 digest\", [material.uri])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.uri",
+        "material.digest.sha256"
+      ],
+      "type": "compound"
+    },
+    "materials_092": {
+      "natural_language": "Verify all materials with quay.io URI have SHA256 digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    contains(material.uri, \"quay.io\")\n    not material.digest.sha256\n    result := sprintf(\"Material with quay.io URI %s does not have SHA256 digest\", [material.uri])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.uri",
+        "material.digest.sha256"
+      ],
+      "type": "compound"
+    },
+    "subject_093": {
+      "natural_language": "Verify all subject images have names that contain a registry.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    name := subject.name\n    name\n    not contains(name, \".\")\n    not contains(name, \"/\")\n    result := sprintf(\"Subject image name %s does not appear to be a valid image reference\", [name])\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "subject_094": {
+      "natural_language": "Verify all subject images have SHA256 digests in valid format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    digest := subject.digest.sha256\n    digest\n    not regex.match(`^[a-f0-9]{64}$`, digest)\n    result := sprintf(\"Subject image %s has invalid SHA256 digest format\", [subject.name])\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.digest.sha256",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "metadata_096": {
+      "natural_language": "Verify the build completed within 24 hours of starting.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    started := time.parse_rfc3339_ns(attestation.statement.predicate.metadata.buildStartedOn)\n    finished := time.parse_rfc3339_ns(attestation.statement.predicate.metadata.buildFinishedOn)\n    duration_hours := (finished - started) / 3600000000000\n    duration_hours > 24\n    result := sprintf(\"Build took %d hours, exceeds 24 hour limit\", [duration_hours])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.metadata.buildStartedOn",
+        "attestation.statement.predicate.metadata.buildFinishedOn"
+      ],
+      "type": "compound"
+    },
+    "compound_097": {
+      "natural_language": "Verify all tasks with names ending in '-oci-ta' have bundle references.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    endswith(task.name, \"-oci-ta\")\n    not task.ref.bundle\n    result := sprintf(\"Task %s ending in -oci-ta does not have bundle reference\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.name",
+        "task.ref.bundle"
+      ],
+      "type": "compound"
+    },
+    "compound_098": {
+      "natural_language": "Verify all tasks that have an 'output-image' parameter produced an IMAGE_URL result with matching value.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    output_image := task.invocation.parameters[\"output-image\"]\n    output_image\n    image_url_result := {r.value | some r in task.results; r.name == \"IMAGE_URL\"}\n    not output_image in image_url_result\n    result := sprintf(\"Task %s output-image parameter does not match IMAGE_URL result\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.results",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_099": {
+      "natural_language": "Verify all tasks have matching pipeline and pipelineRun in both annotations and labels.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    labels := task.invocation.environment.labels\n    pipeline_ann := annotations[\"tekton.dev/pipeline\"]\n    pipeline_label := labels[\"tekton.dev/pipeline\"]\n    pipeline_ann\n    pipeline_label\n    pipeline_ann != pipeline_label\n    result := sprintf(\"Task %s has mismatched pipeline in annotations and labels\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "single_key_001": {
+      "natural_language": "Verify the build task has status 'Succeeded'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.status != \"Succeeded\"\n    result := sprintf(\"Build task status is %s, expected Succeeded\", [task.status])\n}",
+      "keys_used": [
+        "task.name",
+        "task.status"
+      ],
+      "type": "single_key"
+    },
+    "single_key_002": {
+      "natural_language": "Verify the test task has status 'Succeeded'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"test\"\n    task.status != \"Succeeded\"\n    result := sprintf(\"Test task status is %s, expected Succeeded\", [task.status])\n}",
+      "keys_used": [
+        "task.name",
+        "task.status"
+      ],
+      "type": "single_key"
+    },
+    "single_key_003": {
+      "natural_language": "Verify the git-clone task was invoked with sslVerify parameter set to 'true'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    task.invocation.parameters.sslVerify != \"true\"\n    result := \"git-clone task sslVerify parameter is not true\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.sslVerify"
+      ],
+      "type": "single_key"
+    },
+    "single_key_004": {
+      "natural_language": "Verify the prefetch-dependencies task was not invoked with mode parameter set to 'permissive'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"prefetch-dependencies\"\n    task.invocation.parameters.mode == \"permissive\"\n    result := \"prefetch-dependencies mode is permissive\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.mode"
+      ],
+      "type": "single_key"
+    },
+    "single_key_005": {
+      "natural_language": "Verify the build task has a bundle reference.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.ref.bundle\n    result := \"Build task does not have a bundle reference\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.bundle"
+      ],
+      "type": "single_key"
+    },
+    "single_key_006": {
+      "natural_language": "Verify the build task bundle reference contains a digest (has @sha256:).",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"@sha256:\")\n    result := sprintf(\"Build task bundle %s does not contain digest\", [bundle])\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.bundle"
+      ],
+      "type": "single_key"
+    },
+    "single_key_007": {
+      "natural_language": "Verify the build task produced a result named 'IMAGE_URL'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not \"IMAGE_URL\" in {r.name | some r in task.results}\n    result := \"Build task did not produce IMAGE_URL result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "single_key_008": {
+      "natural_language": "Verify the build task produced a result named 'IMAGE_DIGEST'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not \"IMAGE_DIGEST\" in {r.name | some r in task.results}\n    result := \"Build task did not produce IMAGE_DIGEST result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "single_key_009": {
+      "natural_language": "Verify the build task's IMAGE_URL result has a non-empty value.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some task_result in task.results\n    task_result.name == \"IMAGE_URL\"\n    task_result.value == \"\"\n    result := \"Build task IMAGE_URL result is empty\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results",
+        "result.name",
+        "result.value"
+      ],
+      "type": "single_key"
+    },
+    "single_key_010": {
+      "natural_language": "Verify the build task's IMAGE_DIGEST result has a non-empty value.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some task_result in task.results\n    task_result.name == \"IMAGE_DIGEST\"\n    task_result.value == \"\"\n    result := \"Build task IMAGE_DIGEST result is empty\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results",
+        "result.name",
+        "result.value"
+      ],
+      "type": "single_key"
+    },
+    "single_key_011": {
+      "natural_language": "Verify the build task has the annotation 'tekton.dev/tags' set to 'konflux'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    annotations[\"tekton.dev/tags\"] != \"konflux\"\n    result := \"Build task does not have annotation tekton.dev/tags=konflux\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_012": {
+      "natural_language": "Verify the build task has the label 'tekton.dev/memberOf' set to 'tasks'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    labels[\"tekton.dev/memberOf\"] != \"tasks\"\n    result := \"Build task does not have label tekton.dev/memberOf=tasks\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_013": {
+      "natural_language": "Verify the build task finished timestamp exists.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.finishedOn\n    result := \"Build task does not have finishedOn timestamp\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.finishedOn"
+      ],
+      "type": "single_key"
+    },
+    "single_key_014": {
+      "natural_language": "Verify the build task started timestamp exists.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.startedOn\n    result := \"Build task does not have startedOn timestamp\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.startedOn"
+      ],
+      "type": "single_key"
+    },
+    "single_key_015": {
+      "natural_language": "Verify the build task reference has kind 'Task'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.ref.kind != \"Task\"\n    result := sprintf(\"Build task reference kind is %s, expected Task\", [task.ref.kind])\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.kind"
+      ],
+      "type": "single_key"
+    },
+    "single_key_016": {
+      "natural_language": "Verify the build task reference name matches the task name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.ref.name != \"build\"\n    result := sprintf(\"Build task reference name %s does not match task name\", [task.ref.name])\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.name"
+      ],
+      "type": "single_key"
+    },
+    "single_key_017": {
+      "natural_language": "Verify the build task has at least one step.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    count(task.steps) == 0\n    result := \"Build task has no steps\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.steps"
+      ],
+      "type": "single_key"
+    },
+    "single_key_018": {
+      "natural_language": "Verify the build task has at least one result.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    count(task.results) == 0\n    result := \"Build task has no results\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "single_key_019": {
+      "natural_language": "Verify the git-clone task has the url parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.url\n    result := \"git-clone task does not have url parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.url"
+      ],
+      "type": "single_key"
+    },
+    "single_key_020": {
+      "natural_language": "Verify the git-clone task has the revision parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"git-clone\"\n    not task.invocation.parameters.revision\n    result := \"git-clone task does not have revision parameter\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.revision"
+      ],
+      "type": "single_key"
+    },
+    "single_key_021": {
+      "natural_language": "Verify the build task's IMAGE_URL result contains 'quay.io'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some task_result in task.results\n    task_result.name == \"IMAGE_URL\"\n    not contains(task_result.value, \"quay.io\")\n    result := sprintf(\"Build task IMAGE_URL result does not contain quay.io: %s\", [task_result.value])\n}",
+      "keys_used": [
+        "task.name",
+        "task.results",
+        "result.name",
+        "result.value"
+      ],
+      "type": "single_key"
+    },
+    "single_key_022": {
+      "natural_language": "Verify the build task's IMAGE_DIGEST result starts with 'sha256:'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    some task_result in task.results\n    task_result.name == \"IMAGE_DIGEST\"\n    not startswith(task_result.value, \"sha256:\")\n    result := sprintf(\"Build task IMAGE_DIGEST result does not start with sha256:: %s\", [task_result.value])\n}",
+      "keys_used": [
+        "task.name",
+        "task.results",
+        "result.name",
+        "result.value"
+      ],
+      "type": "single_key"
+    },
+    "single_key_023": {
+      "natural_language": "Verify the build task bundle reference is from quay.io.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"quay.io\")\n    result := sprintf(\"Build task bundle %s is not from quay.io\", [bundle])\n}",
+      "keys_used": [
+        "task.name",
+        "task.ref.bundle"
+      ],
+      "type": "single_key"
+    },
+    "single_key_024": {
+      "natural_language": "Verify the test task produced a result named 'TEST_OUTPUT'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"test\"\n    not \"TEST_OUTPUT\" in {r.name | some r in task.results}\n    result := \"Test task did not produce TEST_OUTPUT result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results"
+      ],
+      "type": "single_key"
+    },
+    "single_key_025": {
+      "natural_language": "Verify the test task's TEST_OUTPUT result has a non-empty value.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"test\"\n    some task_result in task.results\n    task_result.name == \"TEST_OUTPUT\"\n    task_result.value == \"\"\n    result := \"Test task TEST_OUTPUT result is empty\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.results",
+        "result.name",
+        "result.value"
+      ],
+      "type": "single_key"
+    },
+    "single_key_026": {
+      "natural_language": "Verify the build task has the annotation 'build.appstudio.openshift.io/repo' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    not annotations[\"build.appstudio.openshift.io/repo\"]\n    result := \"Build task does not have annotation build.appstudio.openshift.io/repo\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_027": {
+      "natural_language": "Verify the build task has the label 'appstudio.openshift.io/component' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    not labels[\"appstudio.openshift.io/component\"]\n    result := \"Build task does not have label appstudio.openshift.io/component\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_028": {
+      "natural_language": "Verify the build task finished after it started.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    started := time.parse_rfc3339_ns(task.startedOn)\n    finished := time.parse_rfc3339_ns(task.finishedOn)\n    finished <= started\n    result := \"Build task finished before or at the same time as it started\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.startedOn",
+        "task.finishedOn"
+      ],
+      "type": "single_key"
+    },
+    "single_key_029": {
+      "natural_language": "Verify the build task has a configSource with a uri.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.invocation.configSource.uri\n    result := \"Build task does not have configSource uri\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.configSource.uri"
+      ],
+      "type": "single_key"
+    },
+    "single_key_030": {
+      "natural_language": "Verify the build task has a configSource with a digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    not task.invocation.configSource.digest\n    result := \"Build task does not have configSource digest\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.configSource.digest"
+      ],
+      "type": "single_key"
+    },
+    "single_key_031": {
+      "natural_language": "Verify the build task configSource digest has sha256.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    digest := task.invocation.configSource.digest\n    digest\n    not digest.sha256\n    result := \"Build task configSource digest does not have sha256\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.configSource.digest.sha256"
+      ],
+      "type": "single_key"
+    },
+    "single_key_032": {
+      "natural_language": "Verify the build task has the annotation 'pipeline.tekton.dev/release' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    not annotations[\"pipeline.tekton.dev/release\"]\n    result := \"Build task does not have annotation pipeline.tekton.dev/release\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_033": {
+      "natural_language": "Verify the build task has the label 'tekton.dev/pipeline' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipeline\"]\n    result := \"Build task does not have label tekton.dev/pipeline\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_034": {
+      "natural_language": "Verify the build task has the label 'tekton.dev/pipelineRun' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineRun\"]\n    result := \"Build task does not have label tekton.dev/pipelineRun\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_035": {
+      "natural_language": "Verify the build task has the label 'tekton.dev/pipelineTask' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineTask\"]\n    result := \"Build task does not have label tekton.dev/pipelineTask\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_036": {
+      "natural_language": "Verify the build task has the label 'tekton.dev/task' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/task\"]\n    result := \"Build task does not have label tekton.dev/task\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.labels"
+      ],
+      "type": "single_key"
+    },
+    "single_key_037": {
+      "natural_language": "Verify the build task has the annotation 'results.tekton.dev/result' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    not annotations[\"results.tekton.dev/result\"]\n    result := \"Build task does not have annotation results.tekton.dev/result\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_038": {
+      "natural_language": "Verify the build task has the annotation 'results.tekton.dev/record' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    not annotations[\"results.tekton.dev/record\"]\n    result := \"Build task does not have annotation results.tekton.dev/record\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_039": {
+      "natural_language": "Verify the build task has the annotation 'results.tekton.dev/stored' set to 'true'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    annotations[\"results.tekton.dev/stored\"] != \"true\"\n    result := \"Build task annotation results.tekton.dev/stored is not true\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "single_key_040": {
+      "natural_language": "Verify the build task has the annotation 'tekton.dev/pipelines.minVersion' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    annotations := task.invocation.environment.annotations\n    not annotations[\"tekton.dev/pipelines.minVersion\"]\n    result := \"Build task does not have annotation tekton.dev/pipelines.minVersion\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.environment.annotations"
+      ],
+      "type": "single_key"
+    },
+    "compound_001": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation completed successfully.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status != \"Succeeded\"\n    result := sprintf(\"Task %s did not succeed\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_002": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a bundle reference.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.ref.bundle\n    result := sprintf(\"Task %s does not have a bundle reference\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_003": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a bundle reference with a digest (contains @sha256:).",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"@sha256:\")\n    result := sprintf(\"Task %s uses bundle without digest: %s\", [task.name, bundle])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_004": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a status set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.status\n    result := sprintf(\"Task %s does not have a status\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_005": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.name\n    result := \"Task does not have a name\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_006": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a reference.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.ref\n    result := sprintf(\"Task %s does not have a reference\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_007": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a reference with kind 'Task'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.ref.kind != \"Task\"\n    result := sprintf(\"Task %s reference kind is %s, expected Task\", [task.name, task.ref.kind])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.kind",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_008": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a reference with a name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.ref.name\n    result := sprintf(\"Task %s reference does not have a name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.name",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_009": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation that have a 'mode' parameter do not have it set to 'permissive'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.invocation.parameters.mode == \"permissive\"\n    result := sprintf(\"Task %s has mode parameter set to permissive\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters.mode",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_010": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation that have an 'sslVerify' parameter have it set to 'true'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.invocation.parameters.sslVerify\n    task.invocation.parameters.sslVerify != \"true\"\n    result := sprintf(\"Task %s has sslVerify parameter set to %s, expected true\", [task.name, task.invocation.parameters.sslVerify])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters.sslVerify",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_011": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/memberOf' set to 'tasks'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    labels[\"tekton.dev/memberOf\"] != \"tasks\"\n    result := sprintf(\"Task %s does not have label tekton.dev/memberOf=tasks\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_012": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'app.kubernetes.io/managed-by' set to 'tekton-pipelines'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    labels[\"app.kubernetes.io/managed-by\"] != \"tekton-pipelines\"\n    result := sprintf(\"Task %s does not have label app.kubernetes.io/managed-by=tekton-pipelines\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_013": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'app.kubernetes.io/version' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"app.kubernetes.io/version\"]\n    result := sprintf(\"Task %s does not have label app.kubernetes.io/version\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_014": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'tekton.dev/pipelines.minVersion' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"tekton.dev/pipelines.minVersion\"]\n    result := sprintf(\"Task %s does not have annotation tekton.dev/pipelines.minVersion\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_015": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a finished timestamp.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.finishedOn\n    result := sprintf(\"Task %s does not have finishedOn timestamp\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_016": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a started timestamp.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.startedOn\n    result := sprintf(\"Task %s does not have startedOn timestamp\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.startedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_017": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation finished after they started.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    started := time.parse_rfc3339_ns(task.startedOn)\n    finished := time.parse_rfc3339_ns(task.finishedOn)\n    finished <= started\n    result := sprintf(\"Task %s finished before or at the same time as it started\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.startedOn",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_018": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have at least one result.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    count(task.results) == 0\n    result := sprintf(\"Task %s has no results\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_019": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have at least one step.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    count(task.steps) == 0\n    result := sprintf(\"Task %s has no steps\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_020": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have invocation parameters.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.parameters\n    result := sprintf(\"Task %s does not have invocation parameters\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_021": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have invocation environment.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.environment\n    result := sprintf(\"Task %s does not have invocation environment\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_022": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have invocation environment annotations.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.environment.annotations\n    result := sprintf(\"Task %s does not have invocation environment annotations\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_023": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have invocation environment labels.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.environment.labels\n    result := sprintf(\"Task %s does not have invocation environment labels\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_024": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a configSource.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.configSource\n    result := sprintf(\"Task %s does not have configSource\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_025": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a configSource with a uri.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.configSource.uri\n    result := sprintf(\"Task %s configSource does not have uri\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.uri",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_026": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a configSource with a digest.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    not task.invocation.configSource.digest\n    result := sprintf(\"Task %s configSource does not have digest\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.digest",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_027": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have a configSource digest with sha256.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    digest := task.invocation.configSource.digest\n    digest\n    not digest.sha256\n    result := sprintf(\"Task %s configSource digest does not have sha256\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.digest.sha256",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_028": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have bundle references from quay.io.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle\n    not contains(bundle, \"quay.io\")\n    result := sprintf(\"Task %s bundle %s is not from quay.io\", [task.name, bundle])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_029": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have bundle references that do not use the 'latest' tag.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle\n    contains(bundle, \":latest\")\n    not contains(bundle, \"@sha256:\")\n    result := sprintf(\"Task %s bundle %s uses latest tag without digest\", [task.name, bundle])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_030": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/pipeline' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipeline\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/pipeline\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_031": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/pipelineRun' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineRun\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/pipelineRun\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_032": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/pipelineTask' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/pipelineTask\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/pipelineTask\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_033": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'tekton.dev/task' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"tekton.dev/task\"]\n    result := sprintf(\"Task %s does not have label tekton.dev/task\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_034": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'results.tekton.dev/result' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"results.tekton.dev/result\"]\n    result := sprintf(\"Task %s does not have annotation results.tekton.dev/result\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_035": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'results.tekton.dev/record' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    not annotations[\"results.tekton.dev/record\"]\n    result := sprintf(\"Task %s does not have annotation results.tekton.dev/record\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_036": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'results.tekton.dev/stored' set to 'true'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    annotations[\"results.tekton.dev/stored\"] != \"true\"\n    result := sprintf(\"Task %s annotation results.tekton.dev/stored is not true\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_037": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'results.tekton.dev/childReadyForDeletion' set to 'true'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    annotations[\"results.tekton.dev/childReadyForDeletion\"] != \"true\"\n    result := sprintf(\"Task %s annotation results.tekton.dev/childReadyForDeletion is not true\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_038": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have results with non-empty values.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some task_result in task.results\n    task_result.value == \"\"\n    result := sprintf(\"Task %s has result %s with empty value\", [task.name, task_result.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name",
+        "result.name",
+        "result.value"
+      ],
+      "type": "compound"
+    },
+    "compound_039": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have results with names set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some task_result in task.results\n    not task_result.name\n    result := sprintf(\"Task %s has result without name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name",
+        "result.name"
+      ],
+      "type": "compound"
+    },
+    "compound_040": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have results with values set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some task_result in task.results\n    not task_result.value\n    result := sprintf(\"Task %s has result %s without value\", [task.name, task_result.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name",
+        "result.name",
+        "result.value"
+      ],
+      "type": "compound"
+    },
+    "compound_041": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have steps with entryPoint set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.entryPoint\n    result := sprintf(\"Task %s has step without entryPoint\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "task.name",
+        "step.entryPoint"
+      ],
+      "type": "compound"
+    },
+    "compound_042": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have steps with environment set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.environment\n    result := sprintf(\"Task %s has step without environment\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "task.name",
+        "step.environment"
+      ],
+      "type": "compound"
+    },
+    "compound_043": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have steps with environment image set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    not step.environment.image\n    result := sprintf(\"Task %s has step without environment image\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "task.name",
+        "step.environment.image"
+      ],
+      "type": "compound"
+    },
+    "compound_044": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation that have parameters have at least one parameter set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.invocation.parameters\n    count(task.invocation.parameters) == 0\n    result := sprintf(\"Task %s has empty parameters object\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_045": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation that have annotations have at least one annotation set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    annotations\n    count(annotations) == 0\n    result := sprintf(\"Task %s has empty annotations object\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_046": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation that have labels have at least one label set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    labels\n    count(labels) == 0\n    result := sprintf(\"Task %s has empty labels object\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_047": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have unique names.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    task_names := {task.name | some task in attestation.statement.predicate.buildConfig.tasks}\n    all_task_names := [task.name | some task in attestation.statement.predicate.buildConfig.tasks]\n    count(task_names) != count(all_task_names)\n    result := \"Tasks have duplicate names\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_048": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have bundle references that are not empty strings.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    bundle := task.ref.bundle\n    bundle == \"\"\n    result := sprintf(\"Task %s has empty bundle reference\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.bundle",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_049": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have reference names that are not empty strings.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.ref.name == \"\"\n    result := sprintf(\"Task %s has empty reference name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.name",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_050": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have names that are not empty strings.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"\"\n    result := \"Task has empty name\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_051": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have status values that are either 'Succeeded' or 'Failed'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status\n    not task.status in {\"Succeeded\", \"Failed\"}\n    result := sprintf(\"Task %s has invalid status: %s\", [task.name, task.status])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_052": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have finished timestamps that are valid RFC3339 format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    finished := task.finishedOn\n    finished\n    not time.parse_rfc3339_ns(finished)\n    result := sprintf(\"Task %s has invalid finishedOn timestamp format: %s\", [task.name, finished])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_053": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have started timestamps that are valid RFC3339 format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    started := task.startedOn\n    started\n    not time.parse_rfc3339_ns(started)\n    result := sprintf(\"Task %s has invalid startedOn timestamp format: %s\", [task.name, started])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.startedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_059": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the label 'pipelines.appstudio.openshift.io/type' set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    labels := task.invocation.environment.labels\n    not labels[\"pipelines.appstudio.openshift.io/type\"]\n    result := sprintf(\"Task %s does not have label pipelines.appstudio.openshift.io/type\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_060": {
+      "natural_language": "Verify all tasks in the PipelineRun attestation have the annotation 'pipelinesascode.tekton.dev/state' set to 'completed'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    annotations := task.invocation.environment.annotations\n    annotations[\"pipelinesascode.tekton.dev/state\"] != \"completed\"\n    result := sprintf(\"Task %s annotation pipelinesascode.tekton.dev/state is not completed\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "task_param_195": {
+      "natural_language": "Verify the build task has the 'rebuild' parameter set to 'false'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.invocation.parameters.rebuild == \"true\"\n    result := \"Build task rebuild parameter is set to true\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters.rebuild"
+      ],
+      "type": "single_key"
+    },
+    "task_param_196": {
+      "natural_language": "Verify the build task has the 'skip-checks' parameter set to 'false'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.name == \"build\"\n    task.invocation.parameters[\"skip-checks\"] == \"true\"\n    result := \"Build task skip-checks parameter is set to true\"\n}",
+      "keys_used": [
+        "task.name",
+        "task.invocation.parameters"
+      ],
+      "type": "single_key"
+    },
+    "compound_197": {
+      "natural_language": "Verify all tasks that have a 'rebuild' parameter have it set to 'false'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    rebuild := task.invocation.parameters.rebuild\n    rebuild\n    rebuild == \"true\"\n    result := sprintf(\"Task %s has rebuild parameter set to true\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters.rebuild",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_198": {
+      "natural_language": "Verify all tasks that have a 'skip-checks' parameter have it set to 'false'.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    skip_checks := task.invocation.parameters[\"skip-checks\"]\n    skip_checks\n    skip_checks == \"true\"\n    result := sprintf(\"Task %s has skip-checks parameter set to true\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.parameters",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_199": {
+      "natural_language": "Verify all steps in all tasks have environment image that is not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    image := step.environment.image\n    image == \"\"\n    result := sprintf(\"Task %s has step with empty image\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.image",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "step_200": {
+      "natural_language": "Verify all steps in all tasks have environment container that is not empty when set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some step in task.steps\n    container := step.environment.container\n    container\n    container == \"\"\n    result := sprintf(\"Task %s has step with empty container name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.environment.container",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "materials_201": {
+      "natural_language": "Verify all materials have URIs that are not empty strings.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    material.uri == \"\"\n    result := \"Material has empty URI\"\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.uri"
+      ],
+      "type": "compound"
+    },
+    "materials_202": {
+      "natural_language": "Verify all materials with SHA1 digest have valid 40-character hex format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    sha1 := material.digest.sha1\n    sha1\n    not regex.match(`^[a-f0-9]{40}$`, sha1)\n    result := sprintf(\"Material SHA1 digest %s is not valid format\", [sha1])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest.sha1"
+      ],
+      "type": "compound"
+    },
+    "materials_203": {
+      "natural_language": "Verify all materials with SHA256 digest have valid 64-character hex format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some material in attestation.statement.predicate.materials\n    sha256 := material.digest.sha256\n    sha256\n    not regex.match(`^[a-f0-9]{64}$`, sha256)\n    result := sprintf(\"Material SHA256 digest %s is not valid format\", [sha256])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.materials",
+        "material.digest.sha256"
+      ],
+      "type": "compound"
+    },
+    "subject_204": {
+      "natural_language": "Verify all subject images have SHA256 digests in valid 64-character hex format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    sha256 := subject.digest.sha256\n    sha256\n    not regex.match(`^[a-f0-9]{64}$`, sha256)\n    result := sprintf(\"Subject image %s has invalid SHA256 digest format\", [subject.name])\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.digest.sha256",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "subject_205": {
+      "natural_language": "Verify all subject images have names that are not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some subject in attestation.statement.subject\n    subject.name == \"\"\n    result := \"Subject image has empty name\"\n}",
+      "keys_used": [
+        "attestation.statement.subject",
+        "subject.name"
+      ],
+      "type": "compound"
+    },
+    "configSource_206": {
+      "natural_language": "Verify all tasks have configSource with uri that is not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    uri := task.invocation.configSource.uri\n    uri\n    uri == \"\"\n    result := sprintf(\"Task %s configSource has empty uri\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.uri",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "configSource_207": {
+      "natural_language": "Verify all tasks have configSource with entryPoint that is not empty when set.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    entry_point := task.invocation.configSource.entryPoint\n    entry_point\n    entry_point == \"\"\n    result := sprintf(\"Task %s configSource has empty entryPoint\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.entryPoint",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "configSource_208": {
+      "natural_language": "Verify all tasks have configSource digest with sha256 that is not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    digest := task.invocation.configSource.digest\n    digest\n    digest.sha256 == \"\"\n    result := sprintf(\"Task %s configSource digest has empty sha256\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.configSource.digest.sha256",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "ref_209": {
+      "natural_language": "Verify all tasks have reference name that is not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.ref.name == \"\"\n    result := sprintf(\"Task %s reference has empty name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.name",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "ref_210": {
+      "natural_language": "Verify all tasks have reference kind that is not empty.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.ref.kind == \"\"\n    result := sprintf(\"Task %s reference has empty kind\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.ref.kind",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "result_212": {
+      "natural_language": "Verify all tasks that have results have at least one result with a name.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some task_result in task.results\n    not task_result.name\n    result := sprintf(\"Task %s has result without name\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.results",
+        "task.name",
+        "result.name"
+      ],
+      "type": "compound"
+    },
+    "annotation_214": {
+      "natural_language": "Verify all tasks have annotation values that are not empty when the annotation exists.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some annotation_key, annotation_value in task.invocation.environment.annotations\n    annotation_value == \"\"\n    result := sprintf(\"Task %s has annotation %s with empty value\", [task.name, annotation_key])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.annotations",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "label_215": {
+      "natural_language": "Verify all tasks have label values that are not empty when the label exists.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    some label_key, label_value in task.invocation.environment.labels\n    label_value == \"\"\n    result := sprintf(\"Task %s has label %s with empty value\", [task.name, label_key])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.invocation.environment.labels",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "timestamp_216": {
+      "natural_language": "Verify all tasks that have startedOn have it in valid RFC3339 format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    started := task.startedOn\n    started\n    not time.parse_rfc3339_ns(started)\n    result := sprintf(\"Task %s has invalid startedOn timestamp format: %s\", [task.name, started])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.startedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "timestamp_217": {
+      "natural_language": "Verify all tasks that have finishedOn have it in valid RFC3339 format.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    finished := task.finishedOn\n    finished\n    not time.parse_rfc3339_ns(finished)\n    result := sprintf(\"Task %s has invalid finishedOn timestamp format: %s\", [task.name, finished])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "slsa_v1_220": {
+      "natural_language": "Verify the SLSA v1.0 attestation externalParameters has runSpec with pipelineSpec.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.externalParameters.runSpec.pipelineSpec\n    result := \"SLSA v1.0 attestation externalParameters.runSpec does not have pipelineSpec\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.externalParameters.runSpec.pipelineSpec"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_221": {
+      "natural_language": "Verify the SLSA v1.0 attestation internalParameters has labels.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.internalParameters.labels\n    result := \"SLSA v1.0 attestation internalParameters does not have labels\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.internalParameters.labels"
+      ],
+      "type": "single_key"
+    },
+    "slsa_v1_222": {
+      "natural_language": "Verify the SLSA v1.0 attestation internalParameters has annotations.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    attestation.statement.predicateType == \"https://slsa.dev/provenance/v1\"\n    not attestation.statement.predicate.buildDefinition.internalParameters.annotations\n    result := \"SLSA v1.0 attestation internalParameters does not have annotations\"\n}",
+      "keys_used": [
+        "attestation.statement.predicateType",
+        "attestation.statement.predicate.buildDefinition.internalParameters.annotations"
+      ],
+      "type": "single_key"
+    },
+    "compound_223": {
+      "natural_language": "Verify all tasks have both started and finished timestamps when they have a status.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    task.status\n    (not task.startedOn or not task.finishedOn)\n    result := sprintf(\"Task %s has status but missing timestamps\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.status",
+        "task.startedOn",
+        "task.finishedOn",
+        "task.name"
+      ],
+      "type": "compound"
+    },
+    "compound_224": {
+      "natural_language": "Verify all tasks that have steps have at least one step with a non-empty entryPoint.",
+      "rego_code": "deny contains result if {\n    some attestation in input.attestations\n    some task in attestation.statement.predicate.buildConfig.tasks\n    count(task.steps) > 0\n    all_empty := {step.entryPoint | some step in task.steps; step.entryPoint == \"\"}\n    count(all_empty) == count(task.steps)\n    result := sprintf(\"Task %s has all steps with empty entryPoint\", [task.name])\n}",
+      "keys_used": [
+        "attestation.statement.predicate.buildConfig.tasks",
+        "task.steps",
+        "step.entryPoint",
+        "task.name"
+      ],
+      "type": "compound"
+    }
+  }
+}
