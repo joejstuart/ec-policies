@@ -88,8 +88,15 @@ def prepare_dataset(examples: list, tokenizer, max_length: int = 2048):
     """Prepare dataset for training."""
     def tokenize_function(batch):
         # When batched=True, batch is a dict with column names as keys
-        # The "text" column contains the formatted conversations
-        texts = batch["text"] if isinstance(batch, dict) else batch
+        # The "text" column contains the formatted conversations as a list
+        texts = batch["text"]
+        
+        # Ensure texts is a list of strings
+        if not isinstance(texts, list):
+            texts = [texts] if isinstance(texts, str) else list(texts)
+        
+        # Ensure all items are strings
+        texts = [str(text) for text in texts]
         
         # Tokenize
         tokenized = tokenizer(
@@ -106,7 +113,16 @@ def prepare_dataset(examples: list, tokenizer, max_length: int = 2048):
         return tokenized
     
     # Convert to HuggingFace dataset format
-    dataset_dict = {"text": [format_conversation(ex["messages"]) for ex in examples]}
+    # Format all conversations first
+    formatted_texts = []
+    for ex in examples:
+        if "messages" in ex:
+            formatted_texts.append(format_conversation(ex["messages"]))
+        else:
+            # Fallback: if already formatted
+            formatted_texts.append(str(ex))
+    
+    dataset_dict = {"text": formatted_texts}
     
     from datasets import Dataset
     dataset = Dataset.from_dict(dataset_dict)
