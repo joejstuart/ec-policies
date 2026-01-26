@@ -1,0 +1,26 @@
+# Requirements for Qwen3 fine-tuning (compatible with feast)
+# Install with: pip install -r requirements-training-compatible.txt
+#
+# This version uses compatible versions that work with feast 0.54.1
+# If you don't need feast, use requirements-training.txt instead
+
+# Core libraries
+transformers>=4.40.0
+datasets>=2.14.0
+torch>=2.0.0
+accelerate>=0.20.0
+
+# LoRA support (optional but recommended for efficient fine-tuning)
+peft>=0.6.0
+
+# Training utilities
+tensorboard>=2.14.0
+
+# Pin compatible versions for feast compatibility
+# Note: These may limit some features but should work for basic training
+pyarrow>=10.0.0,<17.0.0  # Compatible with feast's requirement
+dill>=0.3.0,<0.4.0        # Compatible with feast's requirement
+
+# Optional: For better performance
+# bitsandbytes>=0.41.0  # For 8-bit/4-bit quantization
+# flash-attn>=2.0.0     # For faster attention (requires CUDA)

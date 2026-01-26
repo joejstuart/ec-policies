@@ -1,5 +1,12 @@
 # Requirements for Qwen3 fine-tuning
 # Install with: pip install -r requirements-training.txt
+#
+# RECOMMENDED: Use a virtual environment to avoid conflicts:
+#   python3 -m venv venv-training
+#   source venv-training/bin/activate
+#   pip install -r requirements-training.txt
+#
+# If you have conflicts with feast or other packages, see INSTALLATION.md
 
 # Core libraries
 transformers>=4.40.0
