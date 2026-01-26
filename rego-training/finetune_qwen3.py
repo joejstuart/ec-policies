@@ -24,6 +24,7 @@ Examples:
 """
 
 import argparse
+import copy
 import json
 import os
 import shutil
@@ -99,17 +100,19 @@ def prepare_dataset(examples: list, tokenizer, max_length: int = 2048):
         # Ensure all items are strings
         texts = [str(text) for text in texts]
         
-        # Tokenize
+        # Tokenize (no padding here - data collator will handle it)
         tokenized = tokenizer(
             texts,
             truncation=True,
             max_length=max_length,
-            padding=False,
+            padding=False,  # Data collator will pad
             return_tensors=None,
         )
         
         # For causal LM, labels are the same as input_ids
-        tokenized["labels"] = tokenized["input_ids"].copy()
+        # The data collator will handle padding and set padding tokens to -100 in labels
+        # Just copy the structure - data collator will handle the rest
+        tokenized["labels"] = copy.deepcopy(tokenized["input_ids"])
         
         return tokenized
     
@@ -323,6 +326,7 @@ def main():
         # Set pad token if not set
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
         
         model = AutoModelForCausalLM.from_pretrained(
             args.model,
@@ -367,10 +371,11 @@ def main():
         print(f"❌ Error preparing dataset: {e}")
         return 1
     
-    # Data collator
+    # Data collator - handles padding dynamically
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False,  # Causal LM, not masked LM
+        pad_to_multiple_of=8,  # Pad to multiple of 8 for efficiency
     )
     
     # Training arguments
