@@ -26,6 +26,7 @@ Examples:
 import argparse
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -381,6 +382,18 @@ def main():
     total_steps = len(train_dataset) // (args.batch_size * args.gradient_accumulation_steps) * args.epochs
     warmup_steps = max(args.warmup_steps, int(total_steps * 0.1))  # At least 10% warmup
     
+    # Set tensorboard logging directory via environment variable (logging_dir is deprecated)
+    logs_dir = f"{args.output_dir}/logs"
+    os.environ["TENSORBOARD_LOGGING_DIR"] = logs_dir
+    
+    # Check if tensorboard is available - report_to must be a list, not None
+    has_tensorboard = os.path.exists("/usr/bin/tensorboard")
+    if not has_tensorboard:
+        # Try to find tensorboard in PATH
+        has_tensorboard = shutil.which("tensorboard") is not None
+    
+    report_to = ["tensorboard"] if has_tensorboard else []
+    
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
@@ -399,8 +412,8 @@ def main():
         greater_is_better=False,
         fp16=use_fp16,
         bf16=use_bf16,
-        logging_dir=f"{args.output_dir}/logs",
-        report_to="tensorboard" if os.path.exists("/usr/bin/tensorboard") else None,
+        # logging_dir is deprecated, using TENSORBOARD_LOGGING_DIR env var instead
+        report_to=report_to,
         remove_unused_columns=False,
         dataloader_pin_memory=True,  # Better for GPU
         gradient_checkpointing=True,  # Save memory for larger models
