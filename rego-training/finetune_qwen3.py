@@ -208,14 +208,14 @@ def main():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=8,
-        help="Training batch size (default: 8)"
+        default=4,  # Reduced from 8 to save memory
+        help="Training batch size (default: 4)"
     )
     parser.add_argument(
         "--gradient-accumulation-steps",
         type=int,
-        default=2,
-        help="Gradient accumulation steps (default: 2)"
+        default=4,  # Increased from 2 to maintain effective batch size
+        help="Gradient accumulation steps (default: 4)"
     )
     parser.add_argument(
         "--learning-rate",
@@ -232,8 +232,8 @@ def main():
     parser.add_argument(
         "--max-length",
         type=int,
-        default=2048,
-        help="Maximum sequence length (default: 2048)"
+        default=1024,  # Reduced from 2048 to save memory
+        help="Maximum sequence length (default: 1024)"
     )
     parser.add_argument(
         "--save-steps",
@@ -326,11 +326,15 @@ def main():
             tokenizer.pad_token = tokenizer.eos_token
             tokenizer.pad_token_id = tokenizer.eos_token_id
         
+        # Use lower precision to save memory
+        torch_dtype = torch.float16 if args.use_fp16 else (torch.bfloat16 if args.use_bf16 else torch.float32)
+        
         model = AutoModelForCausalLM.from_pretrained(
             args.model,
             trust_remote_code=True,
-            torch_dtype="auto",
+            torch_dtype=torch_dtype,
             device_map="auto",
+            low_cpu_mem_usage=True,  # Reduce CPU memory usage
         )
     except Exception as e:
         print(f"❌ Error loading model: {e}")
@@ -423,6 +427,8 @@ def main():
         gradient_checkpointing=True,  # Save memory for larger models
         optim="adamw_torch",  # Use PyTorch optimizer for better GPU performance
         lr_scheduler_type="cosine",  # Cosine learning rate schedule
+        dataloader_num_workers=0,  # Reduce memory usage
+        max_grad_norm=1.0,  # Gradient clipping
     )
     
     # Initialize trainer
