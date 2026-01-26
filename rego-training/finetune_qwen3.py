@@ -86,9 +86,10 @@ def format_conversation(messages: list) -> str:
 
 def prepare_dataset(examples: list, tokenizer, max_length: int = 2048):
     """Prepare dataset for training."""
-    def tokenize_function(examples):
-        # Format conversations
-        texts = [format_conversation(ex["messages"]) for ex in examples]
+    def tokenize_function(batch):
+        # When batched=True, batch is a dict with column names as keys
+        # The "text" column contains the formatted conversations
+        texts = batch["text"] if isinstance(batch, dict) else batch
         
         # Tokenize
         tokenized = tokenizer(
