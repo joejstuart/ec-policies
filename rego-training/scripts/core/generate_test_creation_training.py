@@ -304,8 +304,8 @@ The test file includes:
 
 def main():
     rego_dir = Path("rego_rules")
-    test_def_file = Path("test_case_definitions.json")
-    comprehensive_file = Path("comprehensive_test_cases.json")
+    test_def_file = Path("../data/test_case_definitions.json")
+    comprehensive_file = Path("../data/comprehensive_test_cases.json")
     output_file = Path("data/qwen3-test-creation-training.jsonl")
     
     if not rego_dir.exists():

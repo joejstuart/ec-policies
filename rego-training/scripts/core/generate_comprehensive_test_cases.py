@@ -1366,7 +1366,7 @@ def main():
         "test_cases": test_cases
     }
     
-    with open("comprehensive_test_cases.json", "w") as f:
+    with open("../data/comprehensive_test_cases.json", "w") as f:
         json.dump(output, f, indent=2)
     
     print(f"Generated {len(test_cases)} test cases")

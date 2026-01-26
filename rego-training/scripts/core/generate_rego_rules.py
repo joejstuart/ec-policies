@@ -58,11 +58,11 @@ import rego.v1
 def main():
     """Generate Rego files for all test cases."""
     # Load test case definitions
-    with open("test_case_definitions.json") as f:
+    with open("../data/test_case_definitions.json") as f:
         test_definitions = json.load(f)
     
     # Load comprehensive test cases to get Rego code
-    with open("comprehensive_test_cases.json") as f:
+    with open("../data/comprehensive_test_cases.json") as f:
         comprehensive = json.load(f)
     
     # Create output directory

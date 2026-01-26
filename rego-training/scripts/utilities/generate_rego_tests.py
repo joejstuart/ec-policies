@@ -120,7 +120,7 @@ def generate_test_file(package_name: str, rule_file: str, test_cases: List[Dict]
 
 def main():
     rego_dir = Path("rego_rules")
-    test_def_file = Path("test_case_definitions.json")
+    test_def_file = Path("../data/test_case_definitions.json")
     output_dir = rego_dir  # Tests go in same directory as rules
     
     if not rego_dir.exists():

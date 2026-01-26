@@ -1,119 +1,112 @@
-# Rego Training Data System
+# Rego Policy Training System
 
-This directory contains the complete system for generating, validating, and managing Rego training data for Qwen3 model fine-tuning.
+This directory contains scripts and tools for fine-tuning Qwen3 models to generate Rego policy rules from natural language requirements.
 
 ## Directory Structure
 
 ```
 rego-training/
-├── README.md                          # This file
-├── validate_rego_training.py          # Core validation engine
-├── validate_and_add_training.py        # Workflow script for validation
-├── test_case_definitions.json         # Test case library
-├── example_validation_workflow.sh     # Example usage script
-├── data/                              # Training data files
-│   ├── qwen3-training-data.jsonl     # Main training dataset (JSONL format)
-│   └── attestation-training-examples.json  # Structured examples with metadata
-└── docs/                              # Documentation
-    ├── README_VALIDATION.md           # Validation system usage guide
-    ├── VALIDATION_SYSTEM_SUMMARY.md   # System overview
-    ├── TRAINING_DATA_SUMMARY.md       # Training data summary
-    ├── qwen3-training-review.md       # Training data quality review
-    └── attestation-structure-training-data.md  # Attestation structure reference
+├── README.md                    # This file
+├── *.py                         # Training and validation scripts
+├── data/                        # Training data and test cases
+│   ├── *.jsonl                 # Training datasets
+│   └── *.json                  # Test case definitions
+├── docs/                        # Documentation
+│   ├── training/               # Training guides
+│   ├── deployment/             # Deployment guides
+│   └── troubleshooting/        # Troubleshooting guides
+└── rego_rules/                 # Rego rule files
 ```
 
 ## Quick Start
 
-### Validate a Candidate Rego Example
+### Fine-tune a Model
 
 ```bash
-cd rego-training
-python3 validate_and_add_training.py \
-  --validate "Verify the prefetch-dependencies task was not invoked with permissive mode" \
-  candidate.rego
+# See docs/training/QUICK_START.md for full guide
+python finetune_qwen3.py \
+  --training-data data/qwen3-complete-training.jsonl \
+  --model Qwen/Qwen3-1.7B \
+  --use-lora
 ```
 
-### Validate and Add to Training Data
+### Generate Instruction Variations
 
 ```bash
-python3 validate_and_add_training.py \
-  --validate "Verify the prefetch-dependencies task was not invoked with permissive mode" \
-  candidate.rego \
-  --add-if-valid
+# Generate variations for training data augmentation
+python generate_instruction_variations.py \
+  --input data/qwen3-complete-training.jsonl \
+  --output data/qwen3-variations.jsonl
 ```
 
-### Validate Entire Training File
+### Run Inference
 
 ```bash
-python3 validate_and_add_training.py \
-  --validate-file data/qwen3-training-data.jsonl
+# Use fine-tuned model to generate Rego rules
+python inference_qwen3.py \
+  --model ./qwen3-rego-finetuned \
+  --mode rule \
+  --prompt "Verify all tasks have status 'Succeeded'."
 ```
 
-## Components
+## Scripts
 
-### Core Scripts
+Scripts are organized in the `scripts/` directory:
 
-- **`validate_rego_training.py`**: Core validation engine that runs Rego code against test cases using OPA
-- **`validate_and_add_training.py`**: Workflow script with CLI interface for validation and adding to training data
-- **`test_case_definitions.json`**: Predefined test cases for common natural language patterns
+- **`scripts/core/`** - Core workflow scripts (test generation, validation, training data, fine-tuning)
+- **`scripts/deployment/`** - Deployment scripts (Ollama, GGUF conversion)
+- **`scripts/utilities/`** - Utility scripts (optional helpers)
+- **`scripts/obsolete/`** - Obsolete scripts (kept for reference)
 
-### Training Data
+See [`scripts/README.md`](scripts/README.md) for complete script documentation.
 
-- **`data/qwen3-training-data.jsonl`**: Main training dataset in JSONL format (one example per line)
-- **`data/attestation-training-examples.json`**: Structured examples with detailed metadata
+### Quick Reference
 
-### Documentation
+**Core Workflow:**
+- `scripts/core/generate_training_from_rules.py` - Generate training data
+- `scripts/core/finetune_qwen3.py` - Fine-tune model
+- `scripts/core/inference_qwen3.py` - Run inference
 
-See the `docs/` directory for detailed documentation:
-- **README_VALIDATION.md**: Complete validation system usage guide
-- **VALIDATION_SYSTEM_SUMMARY.md**: System architecture and design
-- **TRAINING_DATA_SUMMARY.md**: Training data overview
-- **attestation-structure-training-data.md**: Reference for attestation JSON structure
+**Deployment:**
+- `scripts/deployment/merge_lora_for_ollama.py` - Merge LoRA for Ollama
+- `scripts/deployment/create_ollama_modelfile.py` - Create Modelfile
 
-## Workflow
-
-1. **Generate Candidate**: Create Rego code from natural language (manually or via LLM)
-2. **Validate**: Run validation script to test against test cases
-3. **Fix Issues**: Address any validation errors
-4. **Re-validate**: Run again until all tests pass
-5. **Add to Training**: Use `--add-if-valid` flag to add to training data
-
-## Requirements
-
-- Python 3.7+
-- OPA (Open Policy Agent) installed and in PATH
-- Access to `../policy` directory for Rego imports (if needed)
-
-## Example
-
-```bash
-# Create a candidate Rego file
-cat > candidate.rego << 'EOF'
-deny contains result if {
-    some attestation in input.attestations
-    some task in attestation.statement.predicate.buildDefinition.tasks
-    task.name == "prefetch-dependencies"
-    task.invocation.parameters.mode == "permissive"
-    result := "prefetch-dependencies mode is permissive"
-}
-EOF
-
-# Validate it
-python3 validate_and_add_training.py \
-  --validate "Verify the prefetch-dependencies task was not invoked with permissive mode" \
-  candidate.rego
-
-# If validation passes, add to training data
-python3 validate_and_add_training.py \
-  --validate "Verify the prefetch-dependencies task was not invoked with permissive mode" \
-  candidate.rego \
-  --add-if-valid
-```
+See [`docs/COMPLETE_PROCESS.md`](docs/COMPLETE_PROCESS.md) for the complete workflow.
 
 ## Documentation
 
-For detailed information, see:
-- [Training Data Generation Plan](docs/TRAINING_DATA_GENERATION_PLAN.md) - **Start here for generating new training data**
-- [Validation System Guide](docs/README_VALIDATION.md)
-- [System Summary](docs/VALIDATION_SYSTEM_SUMMARY.md)
-- [Training Data Summary](docs/TRAINING_DATA_SUMMARY.md)
+See `docs/README.md` for complete documentation index.
+
+### Quick Links
+- **Getting Started**: [`docs/training/QUICK_START.md`](docs/training/QUICK_START.md)
+- **Fine-tuning Guide**: [`docs/training/FINETUNING.md`](docs/training/FINETUNING.md)
+- **Instruction Variations**: [`docs/training/VARIATION_TRAINING_WORKFLOW.md`](docs/training/VARIATION_TRAINING_WORKFLOW.md)
+- **Ollama Deployment**: [`docs/deployment/OLLAMA_NEXT_STEPS.md`](docs/deployment/OLLAMA_NEXT_STEPS.md)
+- **Troubleshooting**: [`docs/troubleshooting/`](docs/troubleshooting/)
+
+## Training Data
+
+Training datasets are stored in `data/`:
+- **`qwen3-complete-training.jsonl`** - Complete training dataset (rule generation + test creation)
+- **`qwen3-training-data.jsonl`** - Original rule generation dataset
+- **`qwen3-test-creation-training.jsonl`** - Test creation training dataset
+- **`test_case_definitions.json`** - Test case definitions for validation
+
+## Requirements
+
+- Python 3.8+
+- PyTorch (with CUDA for GPU training)
+- Transformers, Datasets, PEFT libraries
+- OPA (Open Policy Agent) for validation
+
+See [`docs/troubleshooting/INSTALLATION.md`](docs/troubleshooting/INSTALLATION.md) for installation instructions.
+
+## Workflow
+
+1. **Generate Training Data**: Use scripts to generate training examples from Rego rules
+2. **Augment with Variations**: Generate instruction variations for robustness
+3. **Fine-tune Model**: Train Qwen3 model on the training data
+4. **Validate**: Test the fine-tuned model on held-out examples
+5. **Deploy**: Export to Ollama or use inference script
+
+See [`docs/training/QUICK_START.md`](docs/training/QUICK_START.md) for detailed workflow.

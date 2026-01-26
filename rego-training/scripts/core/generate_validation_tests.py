@@ -4967,7 +4967,7 @@ def generate_validation_tests(test_case: Dict, case_id: str) -> List[Dict]:
 
 def convert_to_validation_format():
     """Convert comprehensive_test_cases.json to test_case_definitions.json format."""
-    with open("comprehensive_test_cases.json") as f:
+    with open("../data/comprehensive_test_cases.json") as f:
         comprehensive = json.load(f)
     
     test_cases = comprehensive["test_cases"]
@@ -4982,7 +4982,7 @@ def convert_to_validation_format():
             "tests": tests
         }
     
-    with open("test_case_definitions.json", "w") as f:
+    with open("../data/test_case_definitions.json", "w") as f:
         json.dump(validation_format, f, indent=2)
     
     print(f"\nGenerated validation tests for {len(validation_format['test_cases'])} test cases")

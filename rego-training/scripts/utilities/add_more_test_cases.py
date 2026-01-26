@@ -6,7 +6,7 @@ import json
 def add_more_test_cases():
     """Add additional test cases to reach 200+."""
     
-    with open("comprehensive_test_cases.json") as f:
+    with open("../data/comprehensive_test_cases.json") as f:
         data = json.load(f)
     
     test_cases = data["test_cases"]
@@ -432,7 +432,7 @@ def add_more_test_cases():
     data["metadata"]["compound_cases"] = compound
     data["test_cases"] = test_cases
     
-    with open("comprehensive_test_cases.json", "w") as f:
+    with open("../data/comprehensive_test_cases.json", "w") as f:
         json.dump(data, f, indent=2)
     
     print(f"Updated to {len(test_cases)} test cases")

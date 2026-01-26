@@ -4,7 +4,9 @@ Validate that test data generation is correct by checking a few sample cases.
 """
 
 import json
+import sys
 from validate_and_add_training import load_test_case_definitions, find_matching_test_case, validate_with_test_definitions
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from validate_rego_training import RegoValidator, TestCase
 import re
 from pathlib import Path

@@ -12,12 +12,23 @@ This script:
 
 import json
 import re
+import sys
 from pathlib import Path
-from validate_and_add_training import (
-    load_test_case_definitions,
-    find_matching_test_case,
-    validate_with_test_definitions
+
+# Add parent directory to path for imports
+parent_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(parent_dir))
+# Import from obsolete directory
+import importlib.util
+spec = importlib.util.spec_from_file_location(
+    "validate_and_add_training",
+    parent_dir / "scripts" / "obsolete" / "validate_and_add_training.py"
 )
+validate_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validate_module)
+load_test_case_definitions = validate_module.load_test_case_definitions
+find_matching_test_case = validate_module.find_matching_test_case
+validate_with_test_definitions = validate_module.validate_with_test_definitions
 
 def extract_metadata(rego_content: str) -> dict:
     """Extract METADATA from Rego file."""
@@ -114,8 +125,8 @@ Write Rego deny rules that check the attestation structure."""
 
 def main():
     """Generate training data from all Rego rules."""
-    rego_dir = Path("rego_rules")
-    output_file = Path("data/qwen3-training-data.jsonl")
+    rego_dir = Path("../rego_rules")
+    output_file = Path("../data/qwen3-training-data.jsonl")
     test_definitions = load_test_case_definitions()
     
     if not rego_dir.exists():

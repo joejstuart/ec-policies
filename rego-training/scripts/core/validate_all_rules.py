@@ -4,12 +4,16 @@ Validate all Rego rules against test_case_definitions.json.
 """
 
 import json
+import sys
 from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from validate_rego_training import RegoValidator, TestCase, ValidationResult
 
 def load_test_case_definitions():
     """Load test case definitions from JSON file."""
-    with open("test_case_definitions.json") as f:
+    with open("../data/test_case_definitions.json") as f:
         return json.load(f)
 
 def load_rego_rule(case_id: str) -> str:

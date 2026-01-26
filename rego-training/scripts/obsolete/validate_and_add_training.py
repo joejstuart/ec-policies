@@ -15,15 +15,17 @@ Usage:
 
 import json
 import sys
+import sys
 import argparse
 from pathlib import Path
 from typing import Optional
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from validate_rego_training import validate_training_example, ValidationResult, validate_jsonl_file
 
 
 def load_test_case_definitions():
     """Load test case definitions from JSON file."""
-    test_file = Path("test_case_definitions.json")
+    test_file = Path("../data/test_case_definitions.json")
     if test_file.exists():
         with open(test_file) as f:
             return json.load(f)
@@ -40,7 +42,8 @@ def find_matching_test_case(natural_language: str, test_definitions: dict) -> Op
 
 def validate_with_test_definitions(natural_language: str, rego_code: str, test_definitions: dict) -> ValidationResult:
     """Validate using predefined test cases."""
-    from validate_rego_training import RegoValidator, TestCase
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from validate_rego_training import RegoValidator, TestCase
     
     validator = RegoValidator()
     
