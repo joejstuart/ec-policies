@@ -110,10 +110,8 @@ def prepare_dataset(examples: list, tokenizer, max_length: int = 2048):
         )
         
         # For causal LM, labels are the same as input_ids
-        # The data collator will handle padding and set padding tokens to -100 in labels
-        # Just copy the structure - data collator will handle the rest
-        tokenized["labels"] = copy.deepcopy(tokenized["input_ids"])
-        
+        # Don't add labels here - let the data collator handle it
+        # The data collator will add labels and pad correctly
         return tokenized
     
     # Convert to HuggingFace dataset format
@@ -371,11 +369,12 @@ def main():
         print(f"❌ Error preparing dataset: {e}")
         return 1
     
-    # Data collator - handles padding dynamically
+    # Data collator - handles padding dynamically and creates labels
+    # For causal LM, it will set labels = input_ids and pad labels with -100
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=False,  # Causal LM, not masked LM
-        pad_to_multiple_of=8,  # Pad to multiple of 8 for efficiency
+        pad_to_multiple_of=8,  # Pad to multiple of 8 for efficiency (optional, can remove if causing issues)
     )
     
     # Training arguments
