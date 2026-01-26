@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional
 
 try:
+    import torch
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
@@ -43,7 +44,7 @@ try:
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
-    print("Warning: transformers library not found. Install with: pip install transformers datasets")
+    print("Warning: transformers library not found. Install with: pip install transformers datasets torch")
 
 try:
     from peft import LoraConfig, get_peft_model, TaskType
