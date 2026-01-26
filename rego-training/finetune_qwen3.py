@@ -233,8 +233,8 @@ def main():
     parser.add_argument(
         "--max-length",
         type=int,
-        default=1024,  # Reduced from 2048 to save memory
-        help="Maximum sequence length (default: 1024)"
+        default=3072,  # Increased to handle test examples (avg ~2165 tokens, max ~2631)
+        help="Maximum sequence length (default: 3072)"
     )
     parser.add_argument(
         "--save-steps",
