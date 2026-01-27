@@ -722,12 +722,17 @@ def generate_with_tools(
                         # Get existing file content from tool response
                         existing_content = last_tool_msg.get("content", "")
                         if not existing_content.startswith("Error") and content_to_add:
-                            # Append or prepend content based on user intent
-                            if "prepend" in user_msg_lower or "beginning" in user_msg_lower or "start" in user_msg_lower:
-                                new_content = content_to_add + "\n" + existing_content if existing_content else content_to_add
+                            # CRITICAL: If file is empty, only add the requested content (no extra content)
+                            if not existing_content or existing_content.strip() == "":
+                                # Empty file - only add what was requested
+                                new_content = content_to_add
                             else:
-                                # Default: append
-                                new_content = existing_content + "\n" + content_to_add if existing_content else content_to_add
+                                # File has content - append or prepend based on user intent
+                                if "prepend" in user_msg_lower or "beginning" in user_msg_lower or "start" in user_msg_lower:
+                                    new_content = content_to_add + "\n" + existing_content
+                                else:
+                                    # Default: append
+                                    new_content = existing_content + "\n" + content_to_add
                             
                             # Infer write_file call
                             import uuid

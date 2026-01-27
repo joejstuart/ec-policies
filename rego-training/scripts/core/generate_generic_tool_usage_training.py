@@ -44,9 +44,13 @@ CRITICAL GUIDELINES:
 - ONLY perform the exact text manipulation the user requests
 - If the user says "replace X with Y", ONLY replace X with Y - nothing else
 - If the user says "add the content 'X'", add ONLY 'X' - nothing else
+- If the file is EMPTY and user says "add content 'X'", the file should contain ONLY 'X' (no other content)
+- Do NOT add example content like "line1: first line" or "existing content" unless it's already in the file
 - Content to add/remove is usually specified in single or double quotes: 'text' or "text"
 - Extract the exact content from quotes - do not modify or interpret it
-- Preserve all other content exactly as it was
+- When reading a file, use ONLY the content that's actually in the file (from read_file tool response)
+- Do NOT infer or add content that wasn't in the file you read
+- Preserve all other content exactly as it was (if any exists)
 - Follow the user's instructions precisely and literally
 - Use tools to read, modify, and write files"""
     
@@ -333,7 +337,7 @@ Line 3: Appended line"""
 
 
 def create_add_quoted_content_example(file_path: str) -> Dict:
-    """Create example: Add content specified in quotes."""
+    """Create example: Add content specified in quotes to existing file."""
     original = """existing content
 more content"""
     
@@ -346,6 +350,34 @@ hey: 1"""
         original,
         modified,
         "Add the content 'hey: 1' to the file"
+    )
+
+
+def create_add_quoted_content_to_empty_file_example(file_path: str) -> Dict:
+    """Create example: Add content specified in quotes to an EMPTY file."""
+    original = ""  # Empty file
+    
+    modified = """hey: 1"""  # Only the requested content
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Add the content 'hey: 1' to the file"
+    )
+
+
+def create_add_quoted_content_to_empty_file_double_quotes_example(file_path: str) -> Dict:
+    """Create example: Add content with double quotes to an EMPTY file."""
+    original = ""  # Empty file
+    
+    modified = """test: value"""  # Only the requested content
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        'Add the content "test: value" to the file'
     )
 
 
@@ -1466,8 +1498,10 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_replace_quoted_word_example,  # NEW: Replace with single quotes
         create_replace_double_quoted_word_example,  # NEW: Replace with double quotes
         create_append_example,
-        create_add_quoted_content_example,  # NEW: Add content with single quotes
-        create_add_double_quoted_content_example,  # NEW: Add content with double quotes
+        create_add_quoted_content_example,  # Add content with single quotes (to existing file)
+        create_add_quoted_content_to_empty_file_example,  # NEW: Add content to EMPTY file (single quotes)
+        create_add_quoted_content_to_empty_file_double_quotes_example,  # NEW: Add content to EMPTY file (double quotes)
+        create_add_double_quoted_content_example,  # Add content with double quotes (to existing file)
         create_prepend_example,
         create_multiple_operations_example,
         create_empty_file_example,

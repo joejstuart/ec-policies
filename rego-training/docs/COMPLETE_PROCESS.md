@@ -181,7 +181,7 @@ Convert validated Rego rules into training data for the Qwen3 model.
      --generic-tool-data data/qwen3-generic-tool-usage-training.jsonl \
      --output data/qwen3-complete-training.jsonl
    ```
-   
+
    Or with automatic file discovery:
    ```bash
    python merge_training_data.py --output data/qwen3-complete-training.jsonl

@@ -117,9 +117,9 @@ def main():
     # Load test creation training data (optional - skip if empty string)
     test_examples = []
     if args.test_data:
-        print(f"\n📖 Loading test creation training data...")
+    print(f"\n📖 Loading test creation training data...")
         test_examples = load_jsonl(args.test_data)
-        print(f"   Found {len(test_examples)} test creation examples")
+    print(f"   Found {len(test_examples)} test creation examples")
     
     # Load file editing training data (optional)
     file_editing_examples = []
@@ -176,12 +176,12 @@ def main():
     
     # Show breakdown by type
     if test_examples:
-        rule_to_test = sum(1 for ex in test_examples if "create a complete test file" in ex["messages"][1]["content"].lower())
-        requirement_to_rule = len(test_examples) - rule_to_test
-        
-        print(f"\n📊 Test creation breakdown:")
-        print(f"   Rule-to-Test examples: {rule_to_test}")
-        print(f"   Requirement-to-Rule-and-Test examples: {requirement_to_rule}")
+    rule_to_test = sum(1 for ex in test_examples if "create a complete test file" in ex["messages"][1]["content"].lower())
+    requirement_to_rule = len(test_examples) - rule_to_test
+    
+    print(f"\n📊 Test creation breakdown:")
+    print(f"   Rule-to-Test examples: {rule_to_test}")
+    print(f"   Requirement-to-Rule-and-Test examples: {requirement_to_rule}")
     
     return 0
 
