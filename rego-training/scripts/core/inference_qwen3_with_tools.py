@@ -245,10 +245,9 @@ def format_messages_for_generation(messages: List[Dict]) -> str:
         elif role == "assistant":
             formatted += f"<|im_start|>assistant\n{content}"
             # Add tool calls if present (for conversation history)
-            if "tool_calls" in msg and msg["tool_calls"]:
-                # Format tool calls as JSON (for conversation history)
-                tool_calls_json = json.dumps(msg["tool_calls"], indent=2)
-                formatted += f"\n\nTool calls:\n{tool_calls_json}"
+            # Note: In training, tool_calls are a separate key, not in the text
+            # So we don't add them to the formatted text - the model should generate them
+            # formatted += f"\n\nTool calls:\n{tool_calls_json}"
             formatted += "<|im_end|>\n"
         elif role == "tool":
             # Tool responses - format as tool role for context
@@ -431,12 +430,25 @@ def generate_with_tools(
                                 assistant_content = ""
                                 break
         
-        # Parse tool calls
+        # Parse tool calls from the content (before cleaning)
         tool_calls = parse_tool_calls(assistant_content)
         
         # Also check the raw generated text for tool calls (might be in different format)
         if not tool_calls:
             tool_calls = parse_tool_calls(generated_text)
+        
+        # Remove tool call JSON from the displayed content (clean it up)
+        # The model might output "Tool calls: [...]" in the text, but we'll parse and execute them separately
+        assistant_content_clean = assistant_content
+        # Remove "Tool calls:" and JSON arrays from the text
+        assistant_content_clean = re.sub(r'Tool calls?\s*:\s*\[.*?\]', '', assistant_content_clean, flags=re.DOTALL)
+        assistant_content_clean = re.sub(r'\{\s*"tool_calls"\s*:\s*\[.*?\]\s*\}', '', assistant_content_clean, flags=re.DOTALL)
+        # Remove standalone JSON tool call objects
+        assistant_content_clean = re.sub(r'\{\s*"id"\s*:\s*"[^"]+"\s*,\s*"type"\s*:\s*"function"\s*,\s*"function"\s*:\s*\{[^}]+\}\s*\}', '', assistant_content_clean, flags=re.DOTALL)
+        assistant_content_clean = assistant_content_clean.strip()
+        
+        # Use cleaned content for display
+        assistant_content = assistant_content_clean
         
         # Add assistant message
         assistant_msg = {
@@ -472,13 +484,39 @@ def generate_with_tools(
                 for msg in conversation_messages:
                     if msg.get("role") == "user":
                         user_msg = msg.get("content", "")
-                        # Extract path from user message
-                        path_match = re.search(r'(?:file|named|at|path)\s+(?:`)?([^\s`]+\.\w+)(?:`)?', user_msg, re.IGNORECASE)
+                        # Extract path from user message - be more flexible
+                        # Look for patterns like "file named X", "file at X", "create X"
+                        path_match = re.search(r'(?:file\s+(?:named|at|called)\s+)?(?:`)?([^\s`]+\.\w+)(?:`)?', user_msg, re.IGNORECASE)
+                        if not path_match:
+                            # Try simpler pattern: just filename with extension
+                            path_match = re.search(r'(\w+\.\w+)', user_msg)
                         if path_match:
                             file_path = path_match.group(1)
                             break
                 
                 if file_path:
+                    # For file creation, check if user specified content
+                    # If not, create empty file (don't infer content)
+                    contents = ""
+                    user_msg = ""
+                    for msg in conversation_messages:
+                        if msg.get("role") == "user":
+                            user_msg = msg.get("content", "")
+                            break
+                    
+                    user_msg_lower = user_msg.lower()
+                    
+                    # Only add content if explicitly requested with quotes or specific phrasing
+                    if "with content" in user_msg_lower or "containing" in user_msg_lower or "add the content" in user_msg_lower:
+                        # Try to extract content from user message - look for quoted content
+                        # Pattern: "content 'text'" or "content \"text\"" or "add the content 'text'"
+                        content_match = re.search(r"(?:content|text|with)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            # Try: "add the content 'text'"
+                            content_match = re.search(r"add\s+the\s+content\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if content_match:
+                            contents = content_match.group(1)
+                    
                     # Infer write_file call
                     import uuid
                     tool_calls.append({
@@ -488,13 +526,63 @@ def generate_with_tools(
                             "name": "write_file",
                             "arguments": json.dumps({
                                 "path": file_path,
-                                "contents": ""  # Empty file for now
+                                "contents": contents
                             })
                         }
                     })
                     if verbose:
                         print(f"\n[Iteration {iteration}] ⚠️  Inferred tool call from natural language:")
                         print(f"   Detected file creation intent, inferred write_file for: {file_path}")
+                        if contents:
+                            print(f"   With content: {contents[:50]}...")
+                        else:
+                            print(f"   Empty file (no content specified)")
+            
+            # Look for "add content" patterns - need to read file first, then modify
+            elif "add" in content_lower and ("content" in content_lower or "text" in content_lower):
+                # Extract file path and content from user message
+                file_path = None
+                content_to_add = ""
+                for msg in conversation_messages:
+                    if msg.get("role") == "user":
+                        user_msg = msg.get("content", "")
+                        # Extract file path - look for "to the file X" or "file X"
+                        path_match = re.search(r'(?:to\s+the\s+file|file)\s+(?:`)?([^\s`]+\.\w+)(?:`)?', user_msg, re.IGNORECASE)
+                        if not path_match:
+                            # Try simpler: just filename
+                            path_match = re.search(r'(\w+\.\w+)', user_msg)
+                        if path_match:
+                            file_path = path_match.group(1)
+                        # Extract content to add - look for quoted content
+                        content_match = re.search(r"(?:content|text)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            # Try: "add the content 'text'"
+                            content_match = re.search(r"add\s+the\s+content\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            # Try any quoted string
+                            content_match = re.search(r"['\"]([^'\"]+)['\"]", user_msg)
+                        if content_match:
+                            content_to_add = content_match.group(1)
+                        break
+                
+                if file_path:
+                    # Need to read file first, then add content
+                    import uuid
+                    read_call_id = f"call_{uuid.uuid4().hex[:12]}"
+                    tool_calls.append({
+                        "id": read_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": "read_file",
+                            "arguments": json.dumps({"path": file_path})
+                        }
+                    })
+                    if verbose:
+                        print(f"\n[Iteration {iteration}] ⚠️  Inferred tool call from natural language:")
+                        print(f"   Detected 'add content' intent, will read {file_path} first")
+                        if content_to_add:
+                            print(f"   Content to add: '{content_to_add}'")
+                        print(f"   (Next iteration will add content to file)")
             
             # Look for file reading patterns
             elif any(phrase in content_lower for phrase in ["read", "open the file", "read the file"]):
@@ -535,8 +623,12 @@ def generate_with_tools(
             assistant_msg["tool_calls"] = tool_calls
         
         # Execute tool calls
-        if verbose:
-            print(f"\n[Iteration {iteration}] Executing {len(tool_calls)} tool call(s)...")
+        if tool_calls:
+            if verbose:
+                print(f"\n[Iteration {iteration}] Executing {len(tool_calls)} tool call(s)...")
+            else:
+                # Even without verbose, show that we're executing tools
+                print(f"\n🔧 Executing {len(tool_calls)} tool call(s)...")
         
         for tool_call in tool_calls:
             func_name = tool_call.get("function", {}).get("name", "")
@@ -549,23 +641,65 @@ def generate_with_tools(
                         print(f"  - {func_name}(path='{args.get('path', '')}')")
                     elif func_name == "write_file":
                         path = args.get("path", "")
-                        contents_preview = args.get("contents", "")[:50]
-                        print(f"  - {func_name}(path='{path}', contents='{contents_preview}...')")
+                        contents = args.get("contents", "")
+                        contents_preview = contents[:50] if len(contents) > 50 else contents
+                        print(f"  - {func_name}(path='{path}', contents_length={len(contents)} chars)")
+                        if contents:
+                            print(f"    Preview: {contents_preview}...")
+                        else:
+                            print(f"    (empty file)")
                     else:
                         print(f"  - {func_name}({func_args})")
                 except:
                     print(f"  - {func_name}({func_args})")
+            else:
+                # Non-verbose: just show what we're doing
+                try:
+                    args = json.loads(func_args)
+                    if func_name == "write_file":
+                        path = args.get("path", "")
+                        print(f"  Writing to {path}...")
+                    elif func_name == "read_file":
+                        path = args.get("path", "")
+                        print(f"  Reading {path}...")
+                except:
+                    pass
             
             result, error = execute_tool_call(tool_call)
             
             if error:
                 result = error
                 if verbose:
-                    print(f"    Error: {error}")
+                    print(f"    ❌ Error: {error}")
+                else:
+                    print(f"    ❌ Error: {error}")
             else:
                 if verbose:
                     result_preview = result[:100] + "..." if len(result) > 100 else result
-                    print(f"    Result: {result_preview}")
+                    print(f"    ✅ Result: {result_preview}")
+                elif func_name == "write_file":
+                    print(f"    ✅ File written successfully")
+                elif func_name == "read_file":
+                    print(f"    ✅ File read ({len(result)} chars)")
+            
+            # Special handling: if we read a file and user wants to add content, prepare for next iteration
+            if func_name == "read_file" and iteration < max_iterations:
+                # Check if user wants to add content - if so, we'll need to modify the file
+                # The model should see the file content and generate a write_file call in the next iteration
+                # Store the file content and user intent for the next iteration
+                for msg in conversation_messages:
+                    if msg.get("role") == "user":
+                        user_msg = msg.get("content", "").lower()
+                        if "add" in user_msg and ("content" in user_msg or "text" in user_msg):
+                            # Extract content to add
+                            content_match = re.search(r"(?:content|text)\s+['\"]([^'\"]+)['\"]", msg.get("content", ""), re.IGNORECASE)
+                            if not content_match:
+                                content_match = re.search(r"['\"]([^'\"]+)['\"]", msg.get("content", ""))
+                            if content_match:
+                                content_to_add = content_match.group(1)
+                                # In next iteration, model should append this to the file
+                                # We'll let the model handle it, but we can add a hint
+                                pass
             
             # Add tool response
             conversation_messages.append({
@@ -826,9 +960,14 @@ def main():
         verbose=args.verbose,
     )
     
-    print("\nFinal Response:")
+    print("\n" + "=" * 70)
+    print("Final Response:")
     print("=" * 70)
-    print(final_response)
+    # Only show response if it's not just tool execution confirmation
+    if final_response and len(final_response.strip()) > 10:
+        print(final_response)
+    else:
+        print("(Tool operations completed)")
     print("=" * 70)
     
     # Show tool execution summary if verbose
