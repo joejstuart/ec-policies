@@ -51,34 +51,40 @@ The system will execute your tool calls. You never touch the filesystem directly
 
 - **ALWAYS generate the COMPLETE file content** in write_file, not just the changes
 - **NEVER generate diffs, patches, or partial content** - always the full file
+- **CRITICAL: When you read a file, use EXACTLY the content from read_file tool response**
+- **CRITICAL: When replacing text, change ONLY what the user specified - preserve everything else EXACTLY**
+- **CRITICAL: Do NOT add, remove, or modify any content that the user didn't explicitly request**
 - Do NOT infer or generate content based on file extensions
 - Do NOT create new content that wasn't in the original file
 - Do NOT "fix" or "improve" the file content
 - Do NOT add domain-specific logic or code
+- Do NOT add lines like "done: true" or "more: false" unless they were in the original file
 - ONLY perform the exact text manipulation the user requests
 - If the user says "replace X with Y", ONLY replace X with Y - nothing else
 - If the user says "add the content 'X'", add ONLY 'X' - nothing else
 - If the file is EMPTY and user says "add content 'X'", the file should contain ONLY 'X' (no other content)
-- Do NOT add example content like "line1: first line" or "existing content" unless it's already in the file
+- Do NOT add example content like "line1: first line" or "existing content" unless it is already in the file
 - Content to add/remove is usually specified in single or double quotes: 'text' or "text"
 - Extract the exact content from quotes - do not modify or interpret it
-- When reading a file, use ONLY the content that's actually in the file (from read_file tool response)
+- When reading a file, use ONLY the content that is actually in the file (from read_file tool response)
 - Do NOT infer or add content that wasn't in the file you read
 - Preserve all other content exactly as it was (if any exists)
-- Follow the user's instructions precisely and literally
+- Follow the user instructions precisely and literally
 - Generate tool calls (read_file, write_file) that the system will execute
 - You never directly access or modify files - only generate tool calls and content"""
     
-    user_prompt = f"""Edit the file at `{file_path}`.
+    user_prompt = f"""Modify the file at `{file_path}`.
 
-{edit_description}"""
+{edit_description}
+
+Remember: Only change what is specified. Preserve all other content exactly as it is in the file."""
     
     # Generate unique IDs for tool calls (for tool response matching)
     read_call_id = f"call_{uuid.uuid4().hex[:12]}"
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
     # Embed tool calls in assistant content text (parseable format)
-    assistant_content = f"""I'll read the file, make the requested changes, and save it.
+    assistant_content = f"""I will read the file to see its current content.
 
 <tool_call>
 name: read_file
@@ -87,7 +93,7 @@ arguments: {json.dumps({"path": file_path})}
     
     tool_response_1_content = original_content
     
-    assistant_content_2 = f"""Now I'll generate the complete updated file content and save it.
+    assistant_content_2 = f"""I have read the file. Now I will make only the requested change and generate the complete updated file content.
 
 <tool_call>
 name: write_file
@@ -99,7 +105,7 @@ arguments: {json.dumps({
     
     tool_response_2_content = """File written successfully."""
     
-    assistant_content_3 = """Done."""
+    assistant_content_3 = """Done. I have made only the requested change and preserved all other content."""
     
     return {
         "messages": [
@@ -219,6 +225,62 @@ The file has multiple lines."""
     )
 
 
+def create_minimal_replace_example(file_path: str) -> Dict:
+    """Create example: Replace in minimal file (emphasizes no content inference)."""
+    # Very minimal file - just the content to replace
+    original = """stuff: 2"""
+    
+    modified = """stuff: 3"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the content 'stuff: 2' with 'stuff: 3'"
+    )
+
+
+def create_replace_in_simple_file_example(file_path: str) -> Dict:
+    """Create example: Replace one line in a simple file, preserve others exactly."""
+    # Simple file with just a few lines
+    original = """stuff: 1
+stuff: 2
+stuff: 4"""
+    
+    modified = """stuff: 1
+stuff: 3
+stuff: 4"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the content 'stuff: 2' with 'stuff: 3'"
+    )
+
+
+def create_replace_preserve_exact_example(file_path: str) -> Dict:
+    """Create example: Replace while preserving exact file structure."""
+    # File with various content - emphasize preserving everything else
+    # This matches the user's exact scenario
+    original = """stuff: 1
+done: true
+more: false
+stuff: 2"""
+    
+    modified = """stuff: 1
+done: true
+more: false
+stuff: 3"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the content 'stuff: 2' with 'stuff: 3'"
+    )
+
+
 def create_simple_word_replacement_example(file_path: str) -> Dict:
     """Create example: Simple word replacement (emphasizes no content inference)."""
     # Use very simple content to emphasize text-only manipulation
@@ -288,8 +350,8 @@ CRITICAL GUIDELINES:
 - Do NOT add "test: 1" or any default content to YAML files
 - Do NOT add default structure to JSON files
 - Only create the exact content the user describes
-- If no content is specified, use write_file with empty contents: ""
-- Follow the user's instructions precisely"""
+- If no content is specified, use write_file with empty contents
+- Follow the user instructions precisely"""
     
     user_prompt = f"Create a new file at `{file_path}`"
     
@@ -297,7 +359,7 @@ CRITICAL GUIDELINES:
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
     # Empty file - no content
-    assistant_content = f"""I'll create the new file.
+    assistant_content = f"""I will create the new file.
 
 <tool_call>
 name: write_file
@@ -527,7 +589,7 @@ CRITICAL GUIDELINES:
 - Do NOT add default structure to JSON files
 - Only create the exact content the user describes
 - If no content is specified, use write_file with empty contents: ""
-- Follow the user's instructions precisely"""
+- Follow the user instructions precisely"""
     
     # For this example, user specifies content, so include it
     file_contents = """package main
@@ -545,7 +607,7 @@ func main() {
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
     # Embed tool call in assistant content
-    assistant_content = f"""I'll create the new file with the requested content.
+    assistant_content = f"""I will create the new file with the requested content.
 
 <tool_call>
 name: write_file
@@ -602,8 +664,8 @@ Guidelines:
 - Do not infer missing logic
 - Do not create domain-specific content
 - Only create the content the user describes
-- Follow the user's instructions precisely
-- If a file doesn't exist, use write_file to create it"""
+- Follow the user instructions precisely
+- If a file does not exist, use write_file to create it"""
     
     file_contents = """# My Document
 
@@ -637,7 +699,7 @@ More content.
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
     # Embed tool call in assistant content
-    assistant_content = f"""I'll create the new file with the specified content.
+    assistant_content = f"""I will create the new file with the specified content.
 
 <tool_call>
 name: write_file
@@ -698,7 +760,7 @@ CRITICAL GUIDELINES:
 - Do NOT add default structure to JSON files
 - Only create the exact content the user describes
 - If no content is specified, use write_file with empty contents: ""
-- Follow the user's instructions precisely"""
+- Follow the user instructions precisely"""
     
     # Different templates based on file extension (only when user explicitly requests structure)
     if file_path.endswith('.json'):
@@ -745,7 +807,7 @@ This is a new file created from a template.
     import uuid
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    assistant_content = f"I'll create the new file with the requested structure."
+    assistant_content = f"I will create the new file with the requested structure."
     
     tool_response_content = "File written successfully."
     
@@ -822,7 +884,7 @@ Line 5: Fifth line"""
 
 
 def create_noop_example(file_path: str) -> Dict:
-    """Create example: No-op request - just read and confirm, don't write."""
+    """Create example: No-op request - just read and confirm, do not write."""
     import uuid
     
     content = """Line 1: First line
@@ -839,16 +901,16 @@ Guidelines:
 - Do not infer missing logic
 - Do not create domain-specific content
 - Only manipulate the text the user describes
-- Follow the user's instructions precisely
+- Follow the user instructions precisely
 - Use tools to read, modify, and write files
 - If the user asks to confirm or check contents without changes, only read the file"""
     
-    user_prompt = f"""Check the contents of `{file_path}` and confirm what's in it. Don't make any changes."""
+    user_prompt = f"""Check the contents of `{file_path}` and confirm what is in it. Do not make any changes."""
     
     read_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
     # Embed tool call in assistant content
-    assistant_content = f"""I'll read the file to check its contents.
+    assistant_content = f"""I will read the file to check its contents.
 
 <tool_call>
 name: read_file
@@ -1473,25 +1535,14 @@ def create_markdown_list_edit_example(file_path: str) -> Dict:
 
 def create_markdown_code_block_edit_example(file_path: str) -> Dict:
     """Create example: Edit Markdown - modify code block."""
-    original = """# Example
-
-Here's some code:
-
-```python
-def hello():
-    print("Hello")
-```
-"""
+    code_block_start = "```python\n"
+    code_block_end = "```\n"
     
-    modified = """# Example
-
-Here's some code:
-
-```python
-def hello(name="World"):
-    print(f"Hello, {name}")
-```
-"""
+    original = "# Example\n\nHere is some code:\n\n" + code_block_start + \
+        "def hello():\n    print(\"Hello\")\n" + code_block_end
+    
+    modified = "# Example\n\nHere is some code:\n\n" + code_block_start + \
+        "def hello(name=\"World\"):\n    print(f\"Hello, {name}\")\n" + code_block_end
     
     return create_simple_file_edit_example(
         file_path,
@@ -1524,10 +1575,13 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_insertion_example,
         create_deletion_example,
         create_text_replacement_example,
-        create_simple_word_replacement_example,  # NEW: Emphasizes no content inference
-        create_word_replacement_preserve_structure_example,  # NEW: Word replacement in code-like files
-        create_replace_quoted_word_example,  # NEW: Replace with single quotes
-        create_replace_double_quoted_word_example,  # NEW: Replace with double quotes
+        create_simple_word_replacement_example,  # Emphasizes no content inference
+        create_word_replacement_preserve_structure_example,  # Word replacement in code-like files
+        create_replace_quoted_word_example,  # Replace with single quotes
+        create_replace_double_quoted_word_example,  # Replace with double quotes
+        create_minimal_replace_example,  # NEW: Replace in minimal file (no extra content)
+        create_replace_in_simple_file_example,  # NEW: Replace in simple file, preserve others
+        create_replace_preserve_exact_example,  # NEW: Replace while preserving exact structure
         create_append_example,
         create_add_quoted_content_example,  # Add content with single quotes (to existing file)
         create_add_quoted_content_to_empty_file_example,  # NEW: Add content to EMPTY file (single quotes)
