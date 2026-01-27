@@ -164,16 +164,20 @@ def format_messages_for_generation(messages: List[Dict]) -> str:
             formatted += f"<|im_start|>user\n{content}<|im_end|>\n"
         elif role == "assistant":
             formatted += f"<|im_start|>assistant\n{content}"
-            # Add tool calls if present
+            # Add tool calls if present (for conversation history)
             if "tool_calls" in msg and msg["tool_calls"]:
-                # Format tool calls as JSON (model may output this)
+                # Format tool calls as JSON (for conversation history)
                 tool_calls_json = json.dumps(msg["tool_calls"], indent=2)
                 formatted += f"\n\nTool calls:\n{tool_calls_json}"
             formatted += "<|im_end|>\n"
         elif role == "tool":
-            # Tool responses are typically not in the generation format
-            # but we can include them for context
+            # Tool responses - format as tool role for context
             formatted += f"<|im_start|>tool\n{content}<|im_end|>\n"
+    
+    # Ensure we end with user or assistant (not tool) so model knows to generate
+    # Add assistant start token if last message was tool (model should continue)
+    if messages and messages[-1].get("role") == "tool":
+        formatted += "<|im_start|>assistant\n"
     
     return formatted
 
@@ -234,6 +238,16 @@ def generate_with_tools(
         # Format for generation
         formatted = format_messages_for_generation(conversation_messages)
         
+        # Ensure we're prompting for assistant response
+        # If the last message wasn't assistant, add assistant start token
+        if conversation_messages and conversation_messages[-1].get("role") != "assistant":
+            if not formatted.endswith("<|im_start|>assistant\n"):
+                formatted += "<|im_start|>assistant\n"
+        
+        if verbose and iteration == 1:
+            print(f"\n[Iteration {iteration}] Formatted prompt (last 200 chars):")
+            print(formatted[-200:])
+        
         # Tokenize
         inputs = tokenizer(
             formatted,
@@ -258,26 +272,83 @@ def generate_with_tools(
                 eos_token_id=tokenizer.convert_tokens_to_ids("<|im_end|>"),
             )
         
-        # Decode
-        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=False)
+        # Decode - only get the newly generated tokens (not the input)
+        input_length = inputs['input_ids'].shape[1]
+        generated_tokens = outputs[0][input_length:]
+        generated_text = tokenizer.decode(generated_tokens, skip_special_tokens=False)
+        
+        if verbose:
+            print(f"\n[Iteration {iteration}] Raw generated text (first 200 chars):")
+            print(generated_text[:200])
         
         # Extract assistant response
+        # The model should generate: <|im_start|>assistant\n{content}<|im_end|>
+        # Or just the content if it doesn't include the tags
+        assistant_content = ""
+        
         if "<|im_start|>assistant" in generated_text:
             assistant_part = generated_text.split("<|im_start|>assistant")[-1]
             if "<|im_end|>" in assistant_part:
                 assistant_part = assistant_part.split("<|im_end|>")[0]
+            # Remove leading newline if present
+            assistant_content = assistant_part.lstrip('\n').strip()
+        elif "<|im_end|>" in generated_text:
+            # Just extract content before the end token
+            assistant_content = generated_text.split("<|im_end|>")[0].strip()
         else:
-            # Fallback
-            if "<|im_end|>" in generated_text:
-                parts = generated_text.split("<|im_end|>")
-                if len(parts) > 2:
-                    assistant_part = parts[-2]
-                else:
-                    assistant_part = generated_text.split(formatted)[-1] if formatted in generated_text else generated_text
-            else:
-                assistant_part = generated_text.split(formatted)[-1] if formatted in generated_text else generated_text
+            # Use the generated text as-is (might not have special tokens)
+            assistant_content = generated_text.strip()
         
-        assistant_content = assistant_part.strip()
+        # Filter out common echo patterns
+        # If the content starts with user prompt markers, it's likely an echo
+        if assistant_content.startswith("<|im_start|>user"):
+            # Extract everything after the user tag
+            parts = assistant_content.split("<|im_start|>user")
+            if len(parts) > 1:
+                # Try to find assistant content after user content
+                remaining = parts[-1]
+                if "<|im_start|>assistant" in remaining:
+                    assistant_content = remaining.split("<|im_start|>assistant")[-1]
+                    if "<|im_end|>" in assistant_content:
+                        assistant_content = assistant_content.split("<|im_end|>")[0]
+                    assistant_content = assistant_content.strip()
+                else:
+                    # No assistant tag found, this is likely just an echo
+                    assistant_content = ""
+        
+        # If content looks like it's echoing the user prompt, it's probably wrong
+        if assistant_content and (
+            assistant_content.startswith("Create a Rego deny rule") or
+            assistant_content.startswith("Verify all tasks") or
+            "<|im_start|>user" in assistant_content
+        ):
+            # This is likely an echo - try to find actual response
+            # Sometimes the model generates the full conversation, extract just assistant part
+            if "<|im_start|>assistant" in generated_text:
+                parts = generated_text.split("<|im_start|>assistant")
+                if len(parts) > 1:
+                    assistant_part = parts[-1]
+                    if "<|im_end|>" in assistant_part:
+                        assistant_part = assistant_part.split("<|im_end|>")[0]
+                    assistant_content = assistant_part.strip()
+                else:
+                    assistant_content = ""
+            else:
+                # If no assistant tag and it looks like echo, use empty or raw
+                # Sometimes models generate without tags
+                if len(assistant_content) < 50 and ("Create" in assistant_content or "Verify" in assistant_content):
+                    # Likely an echo, use the raw generated text but skip echo patterns
+                    assistant_content = generated_text.strip()
+                    # Remove any leading user prompt patterns
+                    for pattern in ["<|im_start|>user", "Create a Rego deny rule", "Verify all tasks"]:
+                        if assistant_content.startswith(pattern):
+                            # Try to find content after this
+                            remaining = assistant_content[len(pattern):].strip()
+                            if remaining:
+                                assistant_content = remaining
+                            else:
+                                assistant_content = ""
+                                break
         
         # Parse tool calls
         tool_calls = parse_tool_calls(assistant_content)
