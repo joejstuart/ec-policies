@@ -610,6 +610,86 @@ def generate_with_tools(
                         print(f"\n[Iteration {iteration}] ⚠️  Inferred tool call from natural language:")
                         print(f"   Detected file reading intent, inferred read_file for: {file_path}")
         
+        # If no tool calls, check if we just read a file and user wants to add content
+        # In that case, we should infer a write_file call
+        if not tool_calls:
+            # Check if last tool response was a file read and user wants to add content
+            if conversation_messages and len(conversation_messages) > 0:
+                # Find the most recent tool response (file read)
+                last_tool_msg = None
+                last_user_msg = None
+                file_path_from_read = None
+                
+                # Find last tool response and the read_file call that generated it
+                for i in range(len(conversation_messages) - 1, -1, -1):
+                    msg = conversation_messages[i]
+                    if msg.get("role") == "tool" and last_tool_msg is None:
+                        last_tool_msg = msg
+                        # Find the corresponding read_file call
+                        tool_call_id = msg.get("tool_call_id", "")
+                        # Look backwards for the assistant message with this tool_call_id
+                        for j in range(i - 1, -1, -1):
+                            prev_msg = conversation_messages[j]
+                            if prev_msg.get("role") == "assistant" and "tool_calls" in prev_msg:
+                                for call in prev_msg.get("tool_calls", []):
+                                    if call.get("id") == tool_call_id and call.get("function", {}).get("name") == "read_file":
+                                        try:
+                                            args = json.loads(call.get("function", {}).get("arguments", "{}"))
+                                            file_path_from_read = args.get("path", "")
+                                        except:
+                                            pass
+                                        break
+                            if file_path_from_read:
+                                break
+                    if msg.get("role") == "user" and last_user_msg is None:
+                        last_user_msg = msg
+                    if last_tool_msg and last_user_msg:
+                        break
+                
+                # If we have a tool response (file read) and user wants to add content
+                if last_tool_msg and last_user_msg and file_path_from_read:
+                    user_msg = last_user_msg.get("content", "")
+                    user_msg_lower = user_msg.lower()
+                    
+                    if "add" in user_msg_lower and ("content" in user_msg_lower or "text" in user_msg_lower or "line" in user_msg_lower):
+                        # Extract content to add from user message
+                        content_to_add = ""
+                        content_match = re.search(r"(?:content|text|line)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            content_match = re.search(r"['\"]([^'\"]+)['\"]", user_msg)
+                        if content_match:
+                            content_to_add = content_match.group(1)
+                        
+                        # Get existing file content from tool response
+                        existing_content = last_tool_msg.get("content", "")
+                        if not existing_content.startswith("Error") and content_to_add:
+                            # Append or prepend content based on user intent
+                            if "prepend" in user_msg_lower or "beginning" in user_msg_lower or "start" in user_msg_lower:
+                                new_content = content_to_add + "\n" + existing_content if existing_content else content_to_add
+                            else:
+                                # Default: append
+                                new_content = existing_content + "\n" + content_to_add if existing_content else content_to_add
+                            
+                            # Infer write_file call
+                            import uuid
+                            tool_calls.append({
+                                "id": f"call_{uuid.uuid4().hex[:12]}",
+                                "type": "function",
+                                "function": {
+                                    "name": "write_file",
+                                    "arguments": json.dumps({
+                                        "path": file_path_from_read,
+                                        "contents": new_content
+                                    })
+                                }
+                            })
+                            if verbose:
+                                print(f"\n[Iteration {iteration}] ⚠️  Inferred write_file from context:")
+                                print(f"   File was read, user wants to add content, inferring write_file")
+                                print(f"   Adding '{content_to_add}' to {file_path_from_read}")
+                            else:
+                                print(f"\n⚠️  Model didn't generate write_file, inferring from context...")
+        
         # If still no tool calls, we're done
         if not tool_calls:
             if verbose:
@@ -682,24 +762,39 @@ def generate_with_tools(
                 elif func_name == "read_file":
                     print(f"    ✅ File read ({len(result)} chars)")
             
-            # Special handling: if we read a file and user wants to add content, prepare for next iteration
-            if func_name == "read_file" and iteration < max_iterations:
-                # Check if user wants to add content - if so, we'll need to modify the file
-                # The model should see the file content and generate a write_file call in the next iteration
-                # Store the file content and user intent for the next iteration
+            # Special handling: if we read a file and user wants to add content, we may need to help
+            # Store context for next iteration
+            if func_name == "read_file" and not error:
+                # Store the file path and content for potential write operation
+                file_path = ""
+                try:
+                    args = json.loads(func_args)
+                    file_path = args.get("path", "")
+                except:
+                    pass
+                
+                # Check if user wants to add content
+                user_intent = None
+                content_to_add = ""
                 for msg in conversation_messages:
                     if msg.get("role") == "user":
-                        user_msg = msg.get("content", "").lower()
-                        if "add" in user_msg and ("content" in user_msg or "text" in user_msg):
+                        user_msg = msg.get("content", "")
+                        user_msg_lower = user_msg.lower()
+                        if "add" in user_msg_lower and ("content" in user_msg_lower or "text" in user_msg_lower or "line" in user_msg_lower):
+                            user_intent = "add_content"
                             # Extract content to add
-                            content_match = re.search(r"(?:content|text)\s+['\"]([^'\"]+)['\"]", msg.get("content", ""), re.IGNORECASE)
+                            content_match = re.search(r"(?:content|text|line)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
                             if not content_match:
-                                content_match = re.search(r"['\"]([^'\"]+)['\"]", msg.get("content", ""))
+                                content_match = re.search(r"['\"]([^'\"]+)['\"]", user_msg)
                             if content_match:
                                 content_to_add = content_match.group(1)
-                                # In next iteration, model should append this to the file
-                                # We'll let the model handle it, but we can add a hint
-                                pass
+                            break
+                
+                # Store this for next iteration
+                if user_intent == "add_content" and file_path and content_to_add:
+                    # We'll check in the next iteration if model generates write_file
+                    # If not, we can infer it
+                    pass
             
             # Add tool response
             conversation_messages.append({
