@@ -325,11 +325,12 @@ def execute_tool_call(tool_call: Dict) -> Tuple[str, str]:
         result = read_file_tool(path)
         return result, ""
     
-    elif func_name == "write_file":
+    elif func_name == "write_file" or func_name == "create_file":
+        # Map "create_file" to "write_file" (model might generate "create_file" from natural language)
         path = args.get("path", "")
         contents = args.get("contents", "")
         if not path:
-            return "", "Error: write_file requires 'path' argument"
+            return "", f"Error: {func_name} requires 'path' argument"
         result = write_file_tool(path, contents)
         return result, ""
     
@@ -553,13 +554,18 @@ def generate_with_tools(
                     user_msg_lower = user_msg.lower()
                     
                     # Only add content if explicitly requested with quotes or specific phrasing
-                    if "with content" in user_msg_lower or "containing" in user_msg_lower or "add the content" in user_msg_lower:
+                    if "with content" in user_msg_lower or "containing" in user_msg_lower or "add the content" in user_msg_lower or "add" in user_msg_lower:
                         # Try to extract content from user message - look for quoted content
-                        # Pattern: "content 'text'" or "content \"text\"" or "add the content 'text'"
+                        # Priority: explicit "content 'X'" or "content \"X\"" patterns
                         content_match = re.search(r"(?:content|text|with)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
                         if not content_match:
-                            # Try: "add the content 'text'"
-                            content_match = re.search(r"add\s+the\s+content\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                            # Try: "add the content 'text'" or "add 'text'"
+                            content_match = re.search(r"add\s+(?:the\s+)?(?:content|text)?\s*['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            # Fallback: any quoted string (prefer the last one as it's usually the content)
+                            all_quotes = list(re.finditer(r"['\"]([^'\"]+)['\"]", user_msg))
+                            if all_quotes:
+                                content_match = all_quotes[-1]
                         if content_match:
                             contents = content_match.group(1)
                     
@@ -699,10 +705,17 @@ def generate_with_tools(
                     
                     if "add" in user_msg_lower and ("content" in user_msg_lower or "text" in user_msg_lower or "line" in user_msg_lower):
                         # Extract content to add from user message
+                        # Priority: explicit "content 'X'" or "content \"X\"" patterns
                         content_to_add = ""
                         content_match = re.search(r"(?:content|text|line)\s+['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
                         if not content_match:
-                            content_match = re.search(r"['\"]([^'\"]+)['\"]", user_msg)
+                            # Try: "add the content 'text'" or "add 'text'"
+                            content_match = re.search(r"add\s+(?:the\s+)?(?:content|text)?\s*['\"]([^'\"]+)['\"]", user_msg, re.IGNORECASE)
+                        if not content_match:
+                            # Fallback: any quoted string (prefer the last one as it's usually the content)
+                            all_quotes = list(re.finditer(r"['\"]([^'\"]+)['\"]", user_msg))
+                            if all_quotes:
+                                content_match = all_quotes[-1]
                         if content_match:
                             content_to_add = content_match.group(1)
                         

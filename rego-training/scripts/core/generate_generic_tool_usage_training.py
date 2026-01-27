@@ -43,6 +43,9 @@ CRITICAL GUIDELINES:
 - Do NOT add domain-specific logic or code
 - ONLY perform the exact text manipulation the user requests
 - If the user says "replace X with Y", ONLY replace X with Y - nothing else
+- If the user says "add the content 'X'", add ONLY 'X' - nothing else
+- Content to add/remove is usually specified in single or double quotes: 'text' or "text"
+- Extract the exact content from quotes - do not modify or interpret it
 - Preserve all other content exactly as it was
 - Follow the user's instructions precisely and literally
 - Use tools to read, modify, and write files"""
@@ -247,6 +250,71 @@ func main() {
     )
 
 
+def create_empty_file_example_simple(file_path: str) -> Dict:
+    """Create example: Create an empty file (no content specified)."""
+    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+CRITICAL GUIDELINES:
+- Do NOT infer or generate content based on file extensions
+- Do NOT create default/example content unless the user explicitly requests it
+- If the user says "create a file X" without specifying content, create an EMPTY file
+- Do NOT add "test: 1" or any default content to YAML files
+- Do NOT add default structure to JSON files
+- Only create the exact content the user describes
+- If no content is specified, use write_file with empty contents: ""
+- Follow the user's instructions precisely"""
+    
+    user_prompt = f"Create a new file at `{file_path}`"
+    
+    import uuid
+    write_call_id = f"call_{uuid.uuid4().hex[:12]}"
+    
+    # Empty file - no content
+    assistant_content = f"""I'll create the new file.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": file_path,
+    "contents": ""
+})}
+</tool_call>"""
+    
+    tool_response_content = "File written successfully."
+    
+    assistant_content_2 = "Done. The file has been created."
+    
+    return {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content
+            },
+            {
+                "role": "tool",
+                "content": tool_response_content,
+                "tool_call_id": write_call_id
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content_2
+            }
+        ]
+    }
+
+
 def create_append_example(file_path: str) -> Dict:
     """Create example: Append to end."""
     original = """Line 1: First line
@@ -261,6 +329,74 @@ Line 3: Appended line"""
         original,
         modified,
         "Append a new line at the end: 'Line 3: Appended line'"
+    )
+
+
+def create_add_quoted_content_example(file_path: str) -> Dict:
+    """Create example: Add content specified in quotes."""
+    original = """existing content
+more content"""
+    
+    modified = """existing content
+more content
+hey: 1"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Add the content 'hey: 1' to the file"
+    )
+
+
+def create_add_double_quoted_content_example(file_path: str) -> Dict:
+    """Create example: Add content specified in double quotes."""
+    original = """existing content
+more content"""
+    
+    modified = """existing content
+more content
+test: value"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        'Add the content "test: value" to the file'
+    )
+
+
+def create_replace_quoted_word_example(file_path: str) -> Dict:
+    """Create example: Replace word specified in quotes."""
+    original = """stuff
+more stuff
+even more stuff"""
+    
+    modified = """blah
+more blah
+even more blah"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the word 'stuff' with 'blah'"
+    )
+
+
+def create_replace_double_quoted_word_example(file_path: str) -> Dict:
+    """Create example: Replace word specified in double quotes."""
+    original = """sample text
+more sample text"""
+    
+    modified = """example text
+more example text"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        'Replace the word "sample" with "example"'
     )
 
 
@@ -328,13 +464,17 @@ You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
-Guidelines:
-- Do not infer missing logic
-- Do not create domain-specific content
-- Only create the content the user describes
-- Follow the user's instructions precisely
-- If a file doesn't exist, use write_file to create it"""
+CRITICAL GUIDELINES:
+- Do NOT infer or generate content based on file extensions
+- Do NOT create default/example content unless the user explicitly requests it
+- If the user says "create a file X" without specifying content, create an EMPTY file
+- Do NOT add "test: 1" or any default content to YAML files
+- Do NOT add default structure to JSON files
+- Only create the exact content the user describes
+- If no content is specified, use write_file with empty contents: ""
+- Follow the user's instructions precisely"""
     
+    # For this example, user specifies content, so include it
     file_contents = """package main
 
 import "fmt"
@@ -487,14 +627,17 @@ You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
-Guidelines:
-- Do not infer missing logic
-- Do not create domain-specific content
-- Only create the content the user describes
-- Follow the user's instructions precisely
-- If a file doesn't exist, use write_file to create it"""
+CRITICAL GUIDELINES:
+- Do NOT infer or generate content based on file extensions
+- Do NOT create default/example content unless the user explicitly requests it
+- If the user says "create a file X" without specifying content, create an EMPTY file
+- Do NOT add "test: 1" or any default content to YAML files
+- Do NOT add default structure to JSON files
+- Only create the exact content the user describes
+- If no content is specified, use write_file with empty contents: ""
+- Follow the user's instructions precisely"""
     
-    # Different templates based on file extension
+    # Different templates based on file extension (only when user explicitly requests structure)
     if file_path.endswith('.json'):
         file_contents = """{
   "name": "MyApp",
@@ -1320,7 +1463,11 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_text_replacement_example,
         create_simple_word_replacement_example,  # NEW: Emphasizes no content inference
         create_word_replacement_preserve_structure_example,  # NEW: Word replacement in code-like files
+        create_replace_quoted_word_example,  # NEW: Replace with single quotes
+        create_replace_double_quoted_word_example,  # NEW: Replace with double quotes
         create_append_example,
+        create_add_quoted_content_example,  # NEW: Add content with single quotes
+        create_add_double_quoted_content_example,  # NEW: Add content with double quotes
         create_prepend_example,
         create_multiple_operations_example,
         create_empty_file_example,
@@ -1356,6 +1503,7 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_new_file_example,
         create_new_file_with_content_example,
         create_new_file_from_template_example,
+        create_empty_file_example_simple,  # NEW: Create empty files without inferring content
     ]
     
     # Generate multiple examples of each type with different file paths
