@@ -424,9 +424,31 @@ def generate_with_tools(
     return conversation_messages, assistant_content
 
 
-def get_system_prompt_with_tools() -> str:
-    """Get system prompt that includes tool information."""
-    return """You are an expert at writing Rego policy rules for Enterprise Contract. You understand the structure of Tekton PipelineRun attestations and can translate natural language policy requirements into Rego code.
+def get_system_prompt_with_tools(mode: str = "generic") -> str:
+    """Get system prompt that includes tool information.
+    
+    Args:
+        mode: "generic" for file operations only, "rego" for Rego-specific editing
+    """
+    if mode == "generic":
+        # Generic file operations prompt (matches training data)
+        return """Your job is to edit files using tools exactly as the user instructs.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+Guidelines:
+- Do not infer missing logic
+- Do not create domain-specific content
+- Only manipulate the text the user describes
+- Follow the user's instructions precisely
+- Use tools to read, modify, and write files
+- If a file doesn't exist, use write_file to create it"""
+    
+    else:
+        # Rego-specific prompt (for domain-specific editing)
+        return """You are an expert at writing Rego policy rules for Enterprise Contract. You understand the structure of Tekton PipelineRun attestations and can translate natural language policy requirements into Rego code.
 
 ## Attestation Structure
 
@@ -530,6 +552,13 @@ def main():
         default=10,
         help="Maximum tool call iterations (default: 10)"
     )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="generic",
+        choices=["generic", "rego"],
+        help="System prompt mode: 'generic' for file operations only, 'rego' for Rego-specific editing (default: generic)"
+    )
     
     args = parser.parse_args()
     
@@ -589,7 +618,7 @@ def main():
                     continue
                 
                 messages = [
-                    {"role": "system", "content": get_system_prompt_with_tools()},
+                    {"role": "system", "content": get_system_prompt_with_tools(args.mode)},
                     {"role": "user", "content": prompt},
                 ]
                 
@@ -624,7 +653,7 @@ def main():
         sys.exit(1)
     
     messages = [
-        {"role": "system", "content": get_system_prompt_with_tools()},
+        {"role": "system", "content": get_system_prompt_with_tools(args.mode)},
         {"role": "user", "content": args.prompt},
     ]
     
