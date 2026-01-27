@@ -36,11 +36,15 @@ You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
-Guidelines:
-- Do not infer missing logic
-- Do not create domain-specific content
-- Only manipulate the text the user describes
-- Follow the user's instructions precisely
+CRITICAL GUIDELINES:
+- Do NOT infer or generate content based on file extensions
+- Do NOT create new content that wasn't in the original file
+- Do NOT "fix" or "improve" the file content
+- Do NOT add domain-specific logic or code
+- ONLY perform the exact text manipulation the user requests
+- If the user says "replace X with Y", ONLY replace X with Y - nothing else
+- Preserve all other content exactly as it was
+- Follow the user's instructions precisely and literally
 - Use tools to read, modify, and write files"""
     
     user_prompt = f"""Edit the file at `{file_path}`.
@@ -174,6 +178,7 @@ Line 4: Fourth line"""
 
 def create_text_replacement_example(file_path: str) -> Dict:
     """Create example: Replace text."""
+    # Use simple, generic content that doesn't suggest any domain
     original = """This is a sample file.
 It contains some text.
 We need to replace 'sample' with 'example'.
@@ -189,6 +194,56 @@ The file has multiple lines."""
         original,
         modified,
         "Replace all occurrences of 'sample' with 'example'"
+    )
+
+
+def create_simple_word_replacement_example(file_path: str) -> Dict:
+    """Create example: Simple word replacement (emphasizes no content inference)."""
+    # Use very simple content to emphasize text-only manipulation
+    original = """stuff
+more stuff
+even more stuff"""
+    
+    modified = """blah
+more blah
+even more blah"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the word 'stuff' with 'blah'"
+    )
+
+
+def create_word_replacement_preserve_structure_example(file_path: str) -> Dict:
+    """Create example: Word replacement that preserves file structure exactly."""
+    # Use content that looks like code but emphasize we only replace words
+    original = """package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, stuff.")
+    fmt.Println("This is a test.")
+    fmt.Println("Another line.")
+}"""
+    
+    modified = """package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, blah.")
+    fmt.Println("This is a test.")
+    fmt.Println("Another line.")
+}"""
+    
+    return create_simple_file_edit_example(
+        file_path,
+        original,
+        modified,
+        "Replace the word 'stuff' with 'blah'"
     )
 
 
@@ -1263,6 +1318,8 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_insertion_example,
         create_deletion_example,
         create_text_replacement_example,
+        create_simple_word_replacement_example,  # NEW: Emphasizes no content inference
+        create_word_replacement_preserve_structure_example,  # NEW: Word replacement in code-like files
         create_append_example,
         create_prepend_example,
         create_multiple_operations_example,
@@ -1389,10 +1446,14 @@ def main():
         for example in examples:
             out.write(json.dumps(example) + '\n')
     
+    # Calculate number of types from examples (we know examples_per_type = 15)
+    examples_per_type = 15
+    total_types = len(examples) // examples_per_type
+    
     print(f"\n✅ Generated generic tool usage training data:")
     print(f"   Examples created: {len(examples)}")
-    print(f"   Examples per type: 15")
-    print(f"   Total types: 34")
+    print(f"   Examples per type: {examples_per_type}")
+    print(f"   Total types: {total_types}")
     print(f"   Output: {output_file}")
     print(f"\n   Example types:")
     print(f"   Basic operations:")
