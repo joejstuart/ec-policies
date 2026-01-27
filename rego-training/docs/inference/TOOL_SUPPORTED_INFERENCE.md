@@ -73,7 +73,7 @@ The script can parse tool calls from:
 - Function call syntax: `read_file("path")`
 - Natural language descriptions
 
-## Example Workflow
+## Example Workflows
 
 ### Adding a Rule to an Existing File
 
@@ -88,6 +88,15 @@ Add a new rule to policy/release/example.rego that verifies all tasks have statu
 3. Generates updated file with new rule
 4. Calls `write_file("policy/release/example.rego", updated_contents)`
 5. Confirms completion
+
+### More Examples
+
+See [FILE_EDITING_EXAMPLES.md](./FILE_EDITING_EXAMPLES.md) for comprehensive examples including:
+- Basic file editing
+- Complex multi-step operations
+- Domain-specific validation rules
+- Interactive workflows
+- Best practices
 
 ## Command-Line Options
 

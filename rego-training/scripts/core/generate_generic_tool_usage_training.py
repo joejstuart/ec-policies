@@ -272,6 +272,280 @@ Line 2: More content"""
     )
 
 
+def create_new_file_example(file_path: str) -> Dict:
+    """Create example: Create a new file from scratch."""
+    # For new files, we don't read first - just write
+    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+Guidelines:
+- Do not infer missing logic
+- Do not create domain-specific content
+- Only create the content the user describes
+- Follow the user's instructions precisely
+- If a file doesn't exist, use write_file to create it"""
+    
+    file_contents = """package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, World!")
+}
+"""
+    
+    user_prompt = f"Create a new file at `{file_path}` with a simple Go program that prints 'Hello, World!'"
+    
+    import uuid
+    write_call_id = f"call_{uuid.uuid4().hex[:12]}"
+    
+    assistant_content = f"I'll create the new file with the requested content."
+    
+    tool_response_content = "File written successfully."
+    
+    assistant_content_2 = "Done. The file has been created."
+    
+    return {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content,
+                "tool_calls": [
+                    {
+                        "id": write_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": "write_file",
+                            "arguments": json.dumps({
+                                "path": file_path,
+                                "contents": file_contents
+                            })
+                        }
+                    }
+                ]
+            },
+            {
+                "role": "tool",
+                "content": tool_response_content,
+                "tool_call_id": write_call_id
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content_2
+            }
+        ]
+    }
+
+
+def create_new_file_with_content_example(file_path: str) -> Dict:
+    """Create example: Create a new file with specific content provided."""
+    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+Guidelines:
+- Do not infer missing logic
+- Do not create domain-specific content
+- Only create the content the user describes
+- Follow the user's instructions precisely
+- If a file doesn't exist, use write_file to create it"""
+    
+    file_contents = """# My Document
+
+This is a new document.
+
+## Section 1
+
+Content here.
+
+## Section 2
+
+More content.
+"""
+    
+    user_prompt = f"""Create a new file at `{file_path}` with the following content:
+
+# My Document
+
+This is a new document.
+
+## Section 1
+
+Content here.
+
+## Section 2
+
+More content.
+"""
+    
+    import uuid
+    write_call_id = f"call_{uuid.uuid4().hex[:12]}"
+    
+    assistant_content = f"I'll create the new file with the specified content."
+    
+    tool_response_content = "File written successfully."
+    
+    assistant_content_2 = "Done. The file has been created."
+    
+    return {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content,
+                "tool_calls": [
+                    {
+                        "id": write_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": "write_file",
+                            "arguments": json.dumps({
+                                "path": file_path,
+                                "contents": file_contents
+                            })
+                        }
+                    }
+                ]
+            },
+            {
+                "role": "tool",
+                "content": tool_response_content,
+                "tool_call_id": write_call_id
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content_2
+            }
+        ]
+    }
+
+
+def create_new_file_from_template_example(file_path: str) -> Dict:
+    """Create example: Create a new file based on a template/description."""
+    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+Guidelines:
+- Do not infer missing logic
+- Do not create domain-specific content
+- Only create the content the user describes
+- Follow the user's instructions precisely
+- If a file doesn't exist, use write_file to create it"""
+    
+    # Different templates based on file extension
+    if file_path.endswith('.json'):
+        file_contents = """{
+  "name": "MyApp",
+  "version": "1.0.0",
+  "description": "A sample application"
+}
+"""
+        user_prompt = f"Create a new JSON file at `{file_path}` with name 'MyApp', version '1.0.0', and description 'A sample application'"
+    elif file_path.endswith('.yaml') or file_path.endswith('.yml'):
+        file_contents = """app:
+  name: MyApp
+  version: 1.0.0
+  settings:
+    debug: false
+"""
+        user_prompt = f"Create a new YAML file at `{file_path}` with app name 'MyApp', version '1.0.0', and debug set to false"
+    elif file_path.endswith('.py'):
+        file_contents = """def main():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    main()
+"""
+        user_prompt = f"Create a new Python file at `{file_path}` with a main function that prints 'Hello, World!'"
+    elif file_path.endswith('.go'):
+        file_contents = """package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, World!")
+}
+"""
+        user_prompt = f"Create a new Go file at `{file_path}` with a main function that prints 'Hello, World!'"
+    else:
+        file_contents = """# New File
+
+This is a new file created from a template.
+"""
+        user_prompt = f"Create a new file at `{file_path}` with a heading 'New File' and text 'This is a new file created from a template.'"
+    
+    import uuid
+    write_call_id = f"call_{uuid.uuid4().hex[:12]}"
+    
+    assistant_content = f"I'll create the new file with the requested structure."
+    
+    tool_response_content = "File written successfully."
+    
+    assistant_content_2 = "Done. The file has been created."
+    
+    return {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content,
+                "tool_calls": [
+                    {
+                        "id": write_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": "write_file",
+                            "arguments": json.dumps({
+                                "path": file_path,
+                                "contents": file_contents
+                            })
+                        }
+                    }
+                ]
+            },
+            {
+                "role": "tool",
+                "content": tool_response_content,
+                "tool_call_id": write_call_id
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content_2
+            }
+        ]
+    }
+
+
 def create_whitespace_preservation_example(file_path: str) -> Dict:
     """Create example: Preserve whitespace."""
     original = """    Indented line 1
@@ -1054,6 +1328,10 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_markdown_add_section_example,
         create_markdown_list_edit_example,
         create_markdown_code_block_edit_example,
+        # File creation examples
+        create_new_file_example,
+        create_new_file_with_content_example,
+        create_new_file_from_template_example,
     ]
     
     # Generate multiple examples of each type with different file paths
@@ -1123,7 +1401,7 @@ def main():
     print(f"\n✅ Generated generic tool usage training data:")
     print(f"   Examples created: {len(examples)}")
     print(f"   Examples per type: 15")
-    print(f"   Total types: 31")
+    print(f"   Total types: 34")
     print(f"   Output: {output_file}")
     print(f"\n   Example types:")
     print(f"   Basic operations:")
@@ -1149,6 +1427,10 @@ def main():
     print(f"   - YAML: config edits, add sections, nested edits")
     print(f"   - JSON: property edits, add fields, array edits")
     print(f"   - Markdown: heading edits, add sections, list edits, code blocks")
+    print(f"   File creation:")
+    print(f"   - Create new files from scratch")
+    print(f"   - Create files with provided content")
+    print(f"   - Create files from templates/descriptions")
     print(f"\n   💡 Tip: For foundational skills like tool usage, more examples")
     print(f"      help ensure robust learning. Consider 400-600+ examples")
     print(f"      for production use.")
