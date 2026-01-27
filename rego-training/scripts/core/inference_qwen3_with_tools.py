@@ -71,6 +71,9 @@ def parse_tool_calls(text: str) -> List[Dict]:
     
     # Try to find JSON tool_calls array (full structure)
     # Pattern: {"tool_calls": [{"id": "...", "type": "function", "function": {...}}]}
+    # Or just: [{"id": "...", "type": "function", "function": {...}}]
+    
+    # First, try to find a complete JSON object with tool_calls
     tool_calls_pattern = r'"tool_calls"\s*:\s*\[(.*?)\]'
     tool_calls_match = re.search(tool_calls_pattern, text, re.DOTALL)
     if tool_calls_match:
@@ -84,8 +87,39 @@ def parse_tool_calls(text: str) -> List[Dict]:
         except:
             pass
     
+    # Also try to find a standalone JSON array of tool calls
+    if not tool_calls:
+        # Look for array starting with tool call structure
+        array_pattern = r'\[\s*\{\s*"id"\s*:\s*"[^"]+"\s*,\s*"type"\s*:\s*"function"\s*,\s*"function"\s*:\s*\{[^}]+\}\s*\}'
+        array_match = re.search(array_pattern, text, re.DOTALL)
+        if array_match:
+            try:
+                # Find the complete array
+                start = text.find('[', array_match.start())
+                if start != -1:
+                    # Try to find matching closing bracket
+                    depth = 0
+                    end = start
+                    for i in range(start, len(text)):
+                        if text[i] == '[':
+                            depth += 1
+                        elif text[i] == ']':
+                            depth -= 1
+                            if depth == 0:
+                                end = i + 1
+                                break
+                    if end > start:
+                        array_str = text[start:end]
+                        calls = json.loads(array_str)
+                        for call in calls:
+                            if isinstance(call, dict) and "function" in call:
+                                tool_calls.append(call)
+            except:
+                pass
+    
     # Try to find individual function call objects
     # Pattern: {"id": "...", "type": "function", "function": {"name": "...", "arguments": "..."}}
+    # Use a more flexible pattern that handles nested JSON
     function_call_pattern = r'\{\s*"id"\s*:\s*"[^"]+"\s*,\s*"type"\s*:\s*"function"\s*,\s*"function"\s*:\s*\{[^}]+\}\s*\}'
     for match in re.finditer(function_call_pattern, text, re.DOTALL):
         try:
@@ -94,6 +128,52 @@ def parse_tool_calls(text: str) -> List[Dict]:
                 tool_calls.append(call)
         except:
             pass
+    
+    # Try to find function call objects with more flexible matching (handles nested braces)
+    if not tool_calls:
+        # Look for {"id": "...", "type": "function", "function": {...}}
+        # This is tricky because of nested JSON, so we'll try a simpler approach
+        # Look for the pattern and try to extract it
+        id_pattern = r'"id"\s*:\s*"([^"]+)"'
+        name_pattern = r'"name"\s*:\s*"([^"]+)"'
+        args_pattern = r'"arguments"\s*:\s*"([^"]+)"'
+        
+        # Find all potential tool call starts
+        for id_match in re.finditer(id_pattern, text):
+            # Look for "type": "function" nearby
+            start = max(0, id_match.start() - 50)
+            end = min(len(text), id_match.end() + 500)
+            snippet = text[start:end]
+            
+            if re.search(r'"type"\s*:\s*"function"', snippet):
+                # Try to find name and arguments
+                name_match = re.search(name_pattern, snippet)
+                args_match = re.search(args_pattern, snippet)
+                
+                if name_match and args_match:
+                    # Try to construct a tool call
+                    func_name = name_match.group(1)
+                    args_str = args_match.group(1)
+                    
+                    # Check if we already have this
+                    if not any(
+                        call.get("function", {}).get("name") == func_name and
+                        call.get("function", {}).get("arguments") == args_str
+                        for call in tool_calls
+                    ):
+                        try:
+                            # Validate args is valid JSON
+                            json.loads(args_str)
+                            tool_calls.append({
+                                "id": id_match.group(1),
+                                "type": "function",
+                                "function": {
+                                    "name": func_name,
+                                    "arguments": args_str
+                                }
+                            })
+                        except:
+                            pass
     
     # Try to find simplified function calls: {"name": "read_file", "arguments": {...}}
     simple_function_pattern = r'\{\s*"name"\s*:\s*"(\w+)"\s*,\s*"arguments"\s*:\s*(\{.*?\})\s*\}'
@@ -278,8 +358,9 @@ def generate_with_tools(
         generated_text = tokenizer.decode(generated_tokens, skip_special_tokens=False)
         
         if verbose:
-            print(f"\n[Iteration {iteration}] Raw generated text (first 200 chars):")
-            print(generated_text[:200])
+            print(f"\n[Iteration {iteration}] Raw generated text (first 500 chars):")
+            print(generated_text[:500])
+            print(f"\n[Iteration {iteration}] Full generated text length: {len(generated_text)} chars")
         
         # Extract assistant response
         # The model should generate: <|im_start|>assistant\n{content}<|im_end|>
@@ -353,6 +434,10 @@ def generate_with_tools(
         # Parse tool calls
         tool_calls = parse_tool_calls(assistant_content)
         
+        # Also check the raw generated text for tool calls (might be in different format)
+        if not tool_calls:
+            tool_calls = parse_tool_calls(generated_text)
+        
         # Add assistant message
         assistant_msg = {
             "role": "assistant",
@@ -370,12 +455,84 @@ def generate_with_tools(
                 for i, call in enumerate(tool_calls, 1):
                     func_name = call.get("function", {}).get("name", "unknown")
                     print(f"  {i}. {func_name}")
+            else:
+                print(f"\n[Iteration {iteration}] ⚠️  No tool calls detected in response")
+                print(f"   Looking for: JSON tool_calls, function patterns, or tool call syntax")
         
-        # If no tool calls, we're done
+        # If no tool calls, try to infer from natural language
+        if not tool_calls:
+            # Check if the model is describing a file operation
+            content_lower = assistant_content.lower()
+            
+            # Look for file creation patterns
+            if any(phrase in content_lower for phrase in ["create", "new file", "write a file", "create a file"]):
+                # Try to extract file path from user message or assistant response
+                file_path = None
+                # Check user message for file path
+                for msg in conversation_messages:
+                    if msg.get("role") == "user":
+                        user_msg = msg.get("content", "")
+                        # Extract path from user message
+                        path_match = re.search(r'(?:file|named|at|path)\s+(?:`)?([^\s`]+\.\w+)(?:`)?', user_msg, re.IGNORECASE)
+                        if path_match:
+                            file_path = path_match.group(1)
+                            break
+                
+                if file_path:
+                    # Infer write_file call
+                    import uuid
+                    tool_calls.append({
+                        "id": f"call_{uuid.uuid4().hex[:12]}",
+                        "type": "function",
+                        "function": {
+                            "name": "write_file",
+                            "arguments": json.dumps({
+                                "path": file_path,
+                                "contents": ""  # Empty file for now
+                            })
+                        }
+                    })
+                    if verbose:
+                        print(f"\n[Iteration {iteration}] ⚠️  Inferred tool call from natural language:")
+                        print(f"   Detected file creation intent, inferred write_file for: {file_path}")
+            
+            # Look for file reading patterns
+            elif any(phrase in content_lower for phrase in ["read", "open the file", "read the file"]):
+                # Try to extract file path
+                file_path = None
+                for msg in conversation_messages:
+                    if msg.get("role") == "user":
+                        user_msg = msg.get("content", "")
+                        path_match = re.search(r'(?:file|at|path)\s+(?:`)?([^\s`]+\.\w+)(?:`)?', user_msg, re.IGNORECASE)
+                        if path_match:
+                            file_path = path_match.group(1)
+                            break
+                
+                if file_path:
+                    import uuid
+                    tool_calls.append({
+                        "id": f"call_{uuid.uuid4().hex[:12]}",
+                        "type": "function",
+                        "function": {
+                            "name": "read_file",
+                            "arguments": json.dumps({"path": file_path})
+                        }
+                    })
+                    if verbose:
+                        print(f"\n[Iteration {iteration}] ⚠️  Inferred tool call from natural language:")
+                        print(f"   Detected file reading intent, inferred read_file for: {file_path}")
+        
+        # If still no tool calls, we're done
         if not tool_calls:
             if verbose:
                 print(f"\n[Iteration {iteration}] No tool calls detected. Finalizing response.")
+                print(f"   Model said: {assistant_content[:200]}")
+                print(f"   This might mean the model needs more training or different prompting.")
             return conversation_messages, assistant_content
+        
+        # Update assistant message with inferred tool calls
+        if tool_calls and "tool_calls" not in assistant_msg:
+            assistant_msg["tool_calls"] = tool_calls
         
         # Execute tool calls
         if verbose:
