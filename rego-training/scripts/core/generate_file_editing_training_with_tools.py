@@ -265,9 +265,37 @@ arguments: {json.dumps({
 
 def main():
     """Generate training data for file editing with tool usage."""
-    rego_dir = Path("../rego_rules")
-    policy_dir = Path("../../policy")
-    output_file = Path("../data/qwen3-file-editing-tools-training.jsonl")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Generate file editing training data with tool usage")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Output file path (default: data/qwen3-file-editing-tools-training.jsonl)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Resolve paths relative to project root (rego-training/)
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+    
+    rego_dir = project_root / "rego_rules"
+    policy_dir = project_root.parent / "policy"
+    
+    if args.output:
+        # Use provided output path
+        output_file = Path(args.output)
+        if not output_file.is_absolute():
+            # Try relative to current directory first, then project root
+            if Path(args.output).exists() or Path.cwd() != project_root:
+                output_file = Path(args.output).resolve()
+            else:
+                output_file = project_root / args.output
+    else:
+        # Default output file
+        output_file = project_root / "data/qwen3-file-editing-tools-training.jsonl"
     
     # Create data directory if it doesn't exist
     output_file.parent.mkdir(exist_ok=True)

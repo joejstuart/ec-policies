@@ -1339,13 +1339,37 @@ def generate_generic_tool_examples() -> List[Dict]:
 
 def main():
     """Generate generic tool usage training data."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Generate generic tool usage training data")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Output file path (default: data/qwen3-generic-tool-usage-training.jsonl)"
+    )
+    
+    args = parser.parse_args()
+    
     # Resolve path relative to project root (rego-training/)
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent
-    output_file = project_root / "data/qwen3-generic-tool-usage-training.jsonl"
+    
+    if args.output:
+        # Use provided output path (resolve relative to current directory or project root)
+        output_file = Path(args.output)
+        if not output_file.is_absolute():
+            # Try relative to current directory first, then project root
+            if Path(args.output).exists() or Path.cwd() != project_root:
+                output_file = Path(args.output).resolve()
+            else:
+                output_file = project_root / args.output
+    else:
+        # Default output file
+        output_file = project_root / "data/qwen3-generic-tool-usage-training.jsonl"
     
     # Create data directory if it doesn't exist
-    output_file.parent.mkdir(exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     
     # Clear or backup existing file
     if output_file.exists():
