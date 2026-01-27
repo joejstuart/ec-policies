@@ -54,10 +54,16 @@ The system will execute your tool calls. You never touch the filesystem directly
 - **CRITICAL: When you read a file, use EXACTLY the content from read_file tool response**
 - **CRITICAL: When replacing text, change ONLY what the user specified - preserve everything else EXACTLY**
 - **CRITICAL: Do NOT add, remove, or modify any content that the user didn't explicitly request**
+- **CRITICAL: You may only use:**
+  - **content that is already in the file (from read_file), OR**
+  - **content explicitly provided by the user in the request**
+- **CRITICAL: Do NOT invent or add any other content**
+- **CRITICAL: Reading a file does NOT imply you should write to it**
+- **CRITICAL: If the user asks to read, check, confirm, or view contents WITHOUT requesting changes, ONLY read the file**
+- **CRITICAL: Do NOT call write_file unless the user explicitly requests a modification**
 - Do NOT infer or generate content based on file extensions
-- Do NOT create new content that wasn't in the original file
 - Do NOT "fix" or "improve" the file content
-- Do NOT add domain-specific logic or code
+- Do NOT add code, configuration, or other content unless the user requested it explicitly
 - Do NOT add lines like "done: true" or "more: false" unless they were in the original file
 - ONLY perform the exact text manipulation the user requests
 - If the user says "replace X with Y", ONLY replace X with Y - nothing else
@@ -569,8 +575,8 @@ Line 2: More content"""
 
 
 def create_new_file_example(file_path: str) -> Dict:
-    """Create example: Create a new file from scratch."""
-    # For new files, we don't read first - just write
+    """Create example: Create an empty file (no content specified)."""
+    # This is pure editing - creating empty file, not generating content
     system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
@@ -582,38 +588,26 @@ You have access to these tools:
 CRITICAL GUIDELINES:
 - Generate tool calls (read_file, write_file) that the system will execute
 - You never directly access or modify files - only generate tool calls and content
-- Do NOT infer or generate content based on file extensions
-- Do NOT create default/example content unless the user explicitly requests it
 - If the user says "create a file X" without specifying content, create an EMPTY file
 - Do NOT add "test: 1" or any default content to YAML files
 - Do NOT add default structure to JSON files
-- Only create the exact content the user describes
+- Do NOT add any content unless the user explicitly requests it
 - If no content is specified, use write_file with empty contents: ""
 - Follow the user instructions precisely"""
     
-    # For this example, user specifies content, so include it
-    file_contents = """package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("Hello, World!")
-}
-"""
-    
-    user_prompt = f"Create a new file at `{file_path}` with a simple Go program that prints 'Hello, World!'"
+    user_prompt = f"Create a new file at `{file_path}`"
     
     import uuid
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    # Embed tool call in assistant content
-    assistant_content = f"""I will create the new file with the requested content.
+    # Empty file - no content
+    assistant_content = f"""I will create the new file.
 
 <tool_call>
 name: write_file
 arguments: {json.dumps({
     "path": file_path,
-    "contents": file_contents
+    "contents": ""
 })}
 </tool_call>"""
     
@@ -924,6 +918,77 @@ arguments: {json.dumps({"path": file_path})}
 {content}
 
 No changes were made as requested."""
+    
+    return {
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content
+            },
+            {
+                "role": "tool",
+                "content": tool_response_content,
+                "tool_call_id": read_call_id
+            },
+            {
+                "role": "assistant",
+                "content": assistant_content_2
+            }
+        ]
+    }
+
+
+def create_noop_read_only_example(file_path: str) -> Dict:
+    """Create example: Read-only request - emphasize that reading does not imply writing."""
+    import uuid
+    
+    content = """stuff: 1
+done: true
+more: false
+stuff: 2"""
+    
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
+
+You have access to these tools:
+- `read_file(path)`: Read the contents of a file at the given path
+- `write_file(path, contents)`: Write contents to a file at the given path
+
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
+CRITICAL GUIDELINES:
+- **Reading a file does NOT imply you should write to it**
+- If the user asks to read, check, confirm, or view contents WITHOUT requesting changes, ONLY read the file
+- Do NOT call write_file unless the user explicitly requests a modification
+- Do not infer missing logic
+- Do not create domain-specific content
+- Only manipulate the text the user describes
+- Follow the user instructions precisely"""
+    
+    user_prompt = f"""Read the file at `{file_path}` and tell me what is in it."""
+    
+    read_call_id = f"call_{uuid.uuid4().hex[:12]}"
+    
+    # Embed tool call in assistant content
+    assistant_content = f"""I will read the file.
+
+<tool_call>
+name: read_file
+arguments: {json.dumps({"path": file_path})}
+</tool_call>"""
+    
+    tool_response_content = content
+    
+    assistant_content_2 = f"""The file contains:
+
+{content}"""
     
     return {
         "messages": [
@@ -1593,6 +1658,7 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_whitespace_preservation_example,
         create_ambiguous_instruction_example,
         create_noop_example,
+        create_noop_read_only_example,  # Additional no-op example to emphasize read-only
         create_partial_content_match_example,
         create_ambiguous_multiple_matches_example,
         create_partial_line_match_example,
@@ -1618,11 +1684,11 @@ def generate_generic_tool_examples() -> List[Dict]:
         create_markdown_add_section_example,
         create_markdown_list_edit_example,
         create_markdown_code_block_edit_example,
-        # File creation examples
-        create_new_file_example,
-        create_new_file_with_content_example,
-        create_new_file_from_template_example,
-        create_empty_file_example_simple,  # NEW: Create empty files without inferring content
+        # File creation examples (pure editing - no content generation)
+        create_new_file_example,  # Creates empty file when no content specified
+        create_new_file_with_content_example,  # Creates file with user-provided content
+        create_empty_file_example_simple,  # Creates empty files without inferring content
+        # Note: create_new_file_from_template_example removed - that's content generation, not pure editing
     ]
     
     # Generate multiple examples of each type with different file paths
