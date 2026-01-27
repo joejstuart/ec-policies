@@ -63,11 +63,57 @@ def parse_tool_calls(text: str) -> List[Dict]:
     Parse tool calls from model output.
     
     The model may output tool calls in various formats. We try to extract:
-    1. JSON tool_calls array (if model outputs structured format)
-    2. Function call patterns in text
-    3. JSON function objects
+    1. XML-style tool calls: <tool_call>name: TOOL_NAME\narguments: {...}</tool_call> (NEW FORMAT)
+    2. JSON tool_calls array (if model outputs structured format)
+    3. Function call patterns in text
+    4. JSON function objects
     """
     tool_calls = []
+    
+    # First, try to parse XML-style tool calls (new improved format)
+    # Pattern: <tool_call>\nname: TOOL_NAME\narguments: {...}\n</tool_call>
+    xml_pattern = r'<tool_call>\s*name:\s*(\w+)\s*arguments:\s*(\{.*?\})\s*</tool_call>'
+    for match in re.finditer(xml_pattern, text, re.DOTALL):
+        tool_name = match.group(1).strip()
+        args_str = match.group(2).strip()
+        
+        try:
+            # Parse the arguments JSON
+            arguments = json.loads(args_str)
+            
+            # Create tool call structure
+            tool_calls.append({
+                "id": f"call_{uuid.uuid4().hex[:12]}",
+                "type": "function",
+                "function": {
+                    "name": tool_name,
+                    "arguments": json.dumps(arguments)
+                }
+            })
+        except json.JSONDecodeError:
+            # Try to fix common JSON issues (trailing commas, unquoted keys)
+            try:
+                # Remove trailing commas
+                args_str_fixed = re.sub(r',\s*}', '}', args_str)
+                args_str_fixed = re.sub(r',\s*]', ']', args_str_fixed)
+                # Try to quote unquoted keys (simple case)
+                args_str_fixed = re.sub(r'(\w+):', r'"\1":', args_str_fixed)
+                arguments = json.loads(args_str_fixed)
+                tool_calls.append({
+                    "id": f"call_{uuid.uuid4().hex[:12]}",
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "arguments": json.dumps(arguments)
+                    }
+                })
+            except:
+                # If still can't parse, skip this tool call
+                pass
+    
+    # If we found XML-style tool calls, return them (they're the new format)
+    if tool_calls:
+        return tool_calls
     
     # Try to find JSON tool_calls array (full structure)
     # Pattern: {"tool_calls": [{"id": "...", "type": "function", "function": {...}}]}

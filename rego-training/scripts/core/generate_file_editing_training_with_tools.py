@@ -129,15 +129,29 @@ Use the read_file tool to read the file, then add the new rule and save it with 
         write_call_id = f"call_{uuid.uuid4().hex[:12]}"
         
         # Assistant message with tool_calls
-        assistant_content = f"""I'll read the existing file, add the new rule, and save it."""
+        # Embed tool calls in assistant content text
+        assistant_content = f"""I'll read the existing file, add the new rule, and save it.
+
+<tool_call>
+name: read_file
+arguments: {json.dumps({"path": file_path})}
+</tool_call>"""
         
         # Tool response message
         tool_response_1_content = f"""```rego
 {existing_file_content}
 ```"""
         
-        # Second assistant message
-        assistant_content_2 = f"""Now I'll add the new rule and save the updated file."""
+        # Second assistant message with embedded tool call
+        assistant_content_2 = f"""Now I'll add the new rule and save the updated file.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": file_path,
+    "contents": updated_file
+})}
+</tool_call>"""
         
         # Second tool response
         tool_response_2_content = """File written successfully."""
@@ -157,17 +171,7 @@ Use the read_file tool to read the file, then add the new rule and save it with 
                 },
                 {
                     "role": "assistant",
-                    "content": assistant_content,
-                    "tool_calls": [
-                        {
-                            "id": read_call_id,
-                            "type": "function",
-                            "function": {
-                                "name": "read_file",
-                                "arguments": json.dumps({"path": file_path})
-                            }
-                        }
-                    ]
+                    "content": assistant_content
                 },
                 {
                     "role": "tool",
@@ -176,20 +180,7 @@ Use the read_file tool to read the file, then add the new rule and save it with 
                 },
                 {
                     "role": "assistant",
-                    "content": assistant_content_2,
-                    "tool_calls": [
-                        {
-                            "id": write_call_id,
-                            "type": "function",
-                            "function": {
-                                "name": "write_file",
-                                "arguments": json.dumps({
-                                    "path": file_path,
-                                    "contents": updated_file
-                                })
-                            }
-                        }
-                    ]
+                    "content": assistant_content_2
                 },
                 {
                     "role": "tool",
@@ -210,13 +201,27 @@ Use the read_file tool to read the file, then add the new rule and save it with 
         read_call_id = f"call_{uuid.uuid4().hex[:12]}"
         write_call_id = f"call_{uuid.uuid4().hex[:12]}"
         
-        assistant_content = f"""I'll read the existing file, add the new rule, and save it."""
+        # Embed tool calls in assistant content text
+        assistant_content = f"""I'll read the existing file, add the new rule, and save it.
+
+<tool_call>
+name: read_file
+arguments: {json.dumps({"path": placeholder_path})}
+</tool_call>"""
         
         tool_response_1_content = f"""```rego
 {existing_file_content}
 ```"""
         
-        assistant_content_2 = f"""Now I'll add the new rule and save the updated file."""
+        assistant_content_2 = f"""Now I'll add the new rule and save the updated file.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": placeholder_path,
+    "contents": updated_file
+})}
+</tool_call>"""
         
         tool_response_2_content = """File written successfully."""
         
@@ -234,17 +239,7 @@ Use the read_file tool to read the file, then add the new rule and save it with 
                 },
                 {
                     "role": "assistant",
-                    "content": assistant_content,
-                    "tool_calls": [
-                        {
-                            "id": read_call_id,
-                            "type": "function",
-                            "function": {
-                                "name": "read_file",
-                                "arguments": json.dumps({"path": placeholder_path})
-                            }
-                        }
-                    ]
+                    "content": assistant_content
                 },
                 {
                     "role": "tool",
@@ -253,20 +248,7 @@ Use the read_file tool to read the file, then add the new rule and save it with 
                 },
                 {
                     "role": "assistant",
-                    "content": assistant_content_2,
-                    "tool_calls": [
-                        {
-                            "id": write_call_id,
-                            "type": "function",
-                            "function": {
-                                "name": "write_file",
-                                "arguments": json.dumps({
-                                    "path": placeholder_path,
-                                    "contents": updated_file
-                                })
-                            }
-                        }
-                    ]
+                    "content": assistant_content_2
                 },
                 {
                     "role": "tool",

@@ -47,15 +47,29 @@ Guidelines:
 
 {edit_description}"""
     
-    # Generate unique IDs for tool calls
+    # Generate unique IDs for tool calls (for tool response matching)
     read_call_id = f"call_{uuid.uuid4().hex[:12]}"
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    assistant_content = f"""I'll read the file, make the requested changes, and save it."""
+    # Embed tool calls in assistant content text (parseable format)
+    assistant_content = f"""I'll read the file, make the requested changes, and save it.
+
+<tool_call>
+name: read_file
+arguments: {json.dumps({"path": file_path})}
+</tool_call>"""
     
     tool_response_1_content = original_content
     
-    assistant_content_2 = f"""Now I'll make the requested changes and save the file."""
+    assistant_content_2 = f"""Now I'll make the requested changes and save the file.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": file_path,
+    "contents": modified_content
+})}
+</tool_call>"""
     
     tool_response_2_content = """File written successfully."""
     
@@ -73,17 +87,8 @@ Guidelines:
             },
             {
                 "role": "assistant",
-                "content": assistant_content,
-                "tool_calls": [
-                    {
-                        "id": read_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "read_file",
-                            "arguments": json.dumps({"path": file_path})
-                        }
-                    }
-                ]
+                "content": assistant_content
+                # Note: We keep tool_calls for backward compatibility, but the model should learn from content
             },
             {
                 "role": "tool",
@@ -92,20 +97,7 @@ Guidelines:
             },
             {
                 "role": "assistant",
-                "content": assistant_content_2,
-                "tool_calls": [
-                    {
-                        "id": write_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "write_file",
-                            "arguments": json.dumps({
-                                "path": file_path,
-                                "contents": modified_content
-                            })
-                        }
-                    }
-                ]
+                "content": assistant_content_2
             },
             {
                 "role": "tool",
@@ -302,7 +294,16 @@ func main() {
     import uuid
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    assistant_content = f"I'll create the new file with the requested content."
+    # Embed tool call in assistant content
+    assistant_content = f"""I'll create the new file with the requested content.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": file_path,
+    "contents": file_contents
+})}
+</tool_call>"""
     
     tool_response_content = "File written successfully."
     
@@ -320,20 +321,7 @@ func main() {
             },
             {
                 "role": "assistant",
-                "content": assistant_content,
-                "tool_calls": [
-                    {
-                        "id": write_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "write_file",
-                            "arguments": json.dumps({
-                                "path": file_path,
-                                "contents": file_contents
-                            })
-                        }
-                    }
-                ]
+                "content": assistant_content
             },
             {
                 "role": "tool",
@@ -394,7 +382,16 @@ More content.
     import uuid
     write_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    assistant_content = f"I'll create the new file with the specified content."
+    # Embed tool call in assistant content
+    assistant_content = f"""I'll create the new file with the specified content.
+
+<tool_call>
+name: write_file
+arguments: {json.dumps({
+    "path": file_path,
+    "contents": file_contents
+})}
+</tool_call>"""
     
     tool_response_content = "File written successfully."
     
@@ -412,20 +409,7 @@ More content.
             },
             {
                 "role": "assistant",
-                "content": assistant_content,
-                "tool_calls": [
-                    {
-                        "id": write_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "write_file",
-                            "arguments": json.dumps({
-                                "path": file_path,
-                                "contents": file_contents
-                            })
-                        }
-                    }
-                ]
+                "content": assistant_content
             },
             {
                 "role": "tool",
@@ -518,20 +502,7 @@ This is a new file created from a template.
             },
             {
                 "role": "assistant",
-                "content": assistant_content,
-                "tool_calls": [
-                    {
-                        "id": write_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "write_file",
-                            "arguments": json.dumps({
-                                "path": file_path,
-                                "contents": file_contents
-                            })
-                        }
-                    }
-                ]
+                "content": assistant_content
             },
             {
                 "role": "tool",
@@ -615,7 +586,13 @@ Guidelines:
     
     read_call_id = f"call_{uuid.uuid4().hex[:12]}"
     
-    assistant_content = f"""I'll read the file to check its contents."""
+    # Embed tool call in assistant content
+    assistant_content = f"""I'll read the file to check its contents.
+
+<tool_call>
+name: read_file
+arguments: {json.dumps({"path": file_path})}
+</tool_call>"""
     
     tool_response_content = content
     
@@ -637,17 +614,7 @@ No changes were made as requested."""
             },
             {
                 "role": "assistant",
-                "content": assistant_content,
-                "tool_calls": [
-                    {
-                        "id": read_call_id,
-                        "type": "function",
-                        "function": {
-                            "name": "read_file",
-                            "arguments": json.dumps({"path": file_path})
-                        }
-                    }
-                ]
+                "content": assistant_content
             },
             {
                 "role": "tool",
