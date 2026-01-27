@@ -55,6 +55,8 @@ def create_tool_based_training_example(
     
     system_prompt = """You are an expert at writing Rego policy rules for Enterprise Contract. You understand the structure of Tekton PipelineRun attestations and can translate natural language policy requirements into Rego code.
 
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls and complete file content that the system executes.
+
 ## Attestation Structure
 
 The input structure is:
@@ -82,13 +84,17 @@ The input structure is:
 
 When adding a new rule to an existing policy file:
 1. First, read the existing file using the read_file tool
-2. Keep the existing package declaration and imports
-3. Add the new rule after existing deny rules
-4. Place helper rules (starting with _) after all deny rules
-5. Maintain proper formatting and spacing
-6. Include METADATA annotations for the new rule
-7. Preserve all existing rules and helpers
-8. Save the updated file using the write_file tool
+2. Read and understand the current file content
+3. Generate the COMPLETE updated file content (not a diff or patch)
+   - Keep the existing package declaration and imports
+   - Add the new rule after existing deny rules
+   - Place helper rules (starting with _) after all deny rules
+   - Maintain proper formatting and spacing
+   - Include METADATA annotations for the new rule
+   - Preserve all existing rules and helpers
+4. Use write_file with the COMPLETE new file content
+
+**CRITICAL**: Always generate the entire file content in write_file, never just the changes or a diff.
 
 ## Available Tools
 
@@ -143,7 +149,7 @@ arguments: {json.dumps({"path": file_path})}
 ```"""
         
         # Second assistant message with embedded tool call
-        assistant_content_2 = f"""Now I'll add the new rule and save the updated file.
+        assistant_content_2 = f"""Now I'll generate the complete updated file content with the new rule added.
 
 <tool_call>
 name: write_file
@@ -213,7 +219,7 @@ arguments: {json.dumps({"path": placeholder_path})}
 {existing_file_content}
 ```"""
         
-        assistant_content_2 = f"""Now I'll add the new rule and save the updated file.
+        assistant_content_2 = f"""Now I'll generate the complete updated file content with the new rule added.
 
 <tool_call>
 name: write_file

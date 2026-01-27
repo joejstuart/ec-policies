@@ -51,13 +51,15 @@ def write_file_tool(file_path: str, contents: str) -> str:
         return f"Error writing file: {str(e)}"
 
 
-def parse_user_intent(user_prompt: str) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_user_intent(user_prompt: str) -> Tuple[str, Optional[str], Optional[str], Optional[str]]:
     """
     Parse user intent to determine file operation.
     
     Returns:
-        (operation, file_path, content)
-        operation: 'create', 'read', 'edit', 'add', 'delete', 'unknown'
+        (operation, file_path, content, replace_with)
+        operation: 'create', 'read', 'edit', 'add', 'delete', 'replace', 'unknown'
+        content: content to add/replace (for add/replace operations)
+        replace_with: content to replace with (for replace operations)
     """
     prompt_lower = user_prompt.lower()
     
@@ -69,6 +71,32 @@ def parse_user_intent(user_prompt: str) -> Tuple[str, Optional[str], Optional[st
     if path_match:
         file_path = path_match.group(1)
     
+    # Check for replace operation first (most specific)
+    if "replace" in prompt_lower:
+        # Extract "replace X with Y" pattern
+        # Look for: "replace content 'X' with content 'Y'" or "replace 'X' with 'Y'"
+        old_content = None
+        new_content = None
+        
+        # Try explicit "replace content 'X' with content 'Y'" pattern
+        replace_match = re.search(r"replace\s+(?:content|text|word)?\s*['\"]([^'\"]+)['\"]\s+with\s+(?:content|text|word)?\s*['\"]([^'\"]+)['\"]", user_prompt, re.IGNORECASE)
+        if not replace_match:
+            # Try simpler: "replace 'X' with 'Y'"
+            replace_match = re.search(r"replace\s+['\"]([^'\"]+)['\"]\s+with\s+['\"]([^'\"]+)['\"]", user_prompt, re.IGNORECASE)
+        if not replace_match:
+            # Try: "replace X with Y" (without quotes, but look for quoted strings)
+            quotes = list(re.finditer(r"['\"]([^'\"]+)['\"]", user_prompt))
+            if len(quotes) >= 2:
+                old_content = quotes[0].group(1)
+                new_content = quotes[1].group(1)
+        
+        if replace_match:
+            old_content = replace_match.group(1)
+            new_content = replace_match.group(2)
+        
+        if old_content and new_content:
+            return ("replace", file_path, old_content, new_content)
+    
     # Determine operation
     if "create" in prompt_lower or "new file" in prompt_lower:
         # Extract content if specified
@@ -76,35 +104,40 @@ def parse_user_intent(user_prompt: str) -> Tuple[str, Optional[str], Optional[st
         content_match = re.search(r"(?:with|containing|content)\s+['\"]([^'\"]+)['\"]", user_prompt, re.IGNORECASE)
         if content_match:
             content = content_match.group(1)
-        return ("create", file_path, content)
+        return ("create", file_path, content, None)
     
     elif "read" in prompt_lower or "show" in prompt_lower or "display" in prompt_lower:
-        return ("read", file_path, None)
+        return ("read", file_path, None, None)
     
     elif "add" in prompt_lower and ("content" in prompt_lower or "text" in prompt_lower or "line" in prompt_lower):
         # Extract content to add
         content = None
         content_match = re.search(r"(?:content|text|line)\s+['\"]([^'\"]+)['\"]", user_prompt, re.IGNORECASE)
         if not content_match:
-            content_match = re.search(r"['\"]([^'\"]+)['\"]", user_prompt)
-        if content_match:
-            content = content_match.group(1)
-        return ("add", file_path, content)
+            # Try: "add 'X'"
+            content_match = re.search(r"add\s+(?:the\s+)?(?:content|text)?\s*['\"]([^'\"]+)['\"]", user_prompt, re.IGNORECASE)
+        if not content_match:
+            # Fallback: last quoted string
+            quotes = list(re.finditer(r"['\"]([^'\"]+)['\"]", user_prompt))
+            if quotes:
+                content = quotes[-1].group(1)
+        return ("add", file_path, content, None)
     
     elif "edit" in prompt_lower or "modify" in prompt_lower or "update" in prompt_lower:
-        return ("edit", file_path, None)
+        return ("edit", file_path, None, None)
     
     elif "delete" in prompt_lower or "remove" in prompt_lower:
-        return ("delete", file_path, None)
+        return ("delete", file_path, None, None)
     
     else:
-        return ("unknown", file_path, None)
+        return ("unknown", file_path, None, None)
 
 
 def execute_file_operation(
     operation: str,
     file_path: Optional[str],
     content: Optional[str],
+    replace_with: Optional[str] = None,
     model=None,
     tokenizer=None,
     system_prompt: str = ""
@@ -141,12 +174,39 @@ def execute_file_operation(
         if "Error" in existing:
             return existing, False
         
-        # Append content
-        new_content = existing + "\n" + content if existing else content
+        # If file is empty, only add the requested content
+        if not existing or existing.strip() == "":
+            new_content = content
+        else:
+            # Append content
+            new_content = existing + "\n" + content
+        
         result = write_file_tool(file_path, new_content)
         if "Error" in result:
             return result, False
         return f"Added '{content}' to {file_path}", True
+    
+    elif operation == "replace":
+        if not content:
+            return "Error: No content specified to replace", False
+        if not replace_with:
+            return "Error: No replacement content specified", False
+        
+        # Read existing file
+        existing = read_file_tool(file_path)
+        if "Error" in existing:
+            return existing, False
+        
+        # Replace all occurrences
+        new_content = existing.replace(content, replace_with)
+        
+        if new_content == existing:
+            return f"Warning: '{content}' not found in file {file_path}", False
+        
+        result = write_file_tool(file_path, new_content)
+        if "Error" in result:
+            return result, False
+        return f"Replaced '{content}' with '{replace_with}' in {file_path}", True
     
     elif operation == "edit":
         # For editing, we might need the model to generate the edit
@@ -236,6 +296,8 @@ def main():
         print("  create a file named test.txt with content 'Hello'")
         print("  read the file test.txt")
         print("  add the content 'World' to the file test.txt")
+        print("  replace content 'hey: 1' with content 'what: 2' in the file test.yaml")
+        print("  replace 'old' with 'new' in the file test.txt")
         print("=" * 70)
         
         while True:
@@ -248,17 +310,19 @@ def main():
                     continue
                 
                 # Parse intent
-                operation, file_path, content = parse_user_intent(prompt)
+                operation, file_path, content, replace_with = parse_user_intent(prompt)
                 
                 print(f"\nOperation: {operation}")
                 if file_path:
                     print(f"File: {file_path}")
                 if content:
                     print(f"Content: {content}")
+                if replace_with:
+                    print(f"Replace with: {replace_with}")
                 
                 # Execute operation
                 result, success = execute_file_operation(
-                    operation, file_path, content, model, tokenizer
+                    operation, file_path, content, replace_with, model, tokenizer
                 )
                 
                 print(f"\n{result}")
@@ -282,8 +346,8 @@ def main():
         print("Error: --prompt required (or use --interactive)")
         sys.exit(1)
     
-    operation, file_path, content = parse_user_intent(args.prompt)
-    result, success = execute_file_operation(operation, file_path, content, model, tokenizer)
+    operation, file_path, content, replace_with = parse_user_intent(args.prompt)
+    result, success = execute_file_operation(operation, file_path, content, replace_with, model, tokenizer)
     
     print(result)
     if not success:

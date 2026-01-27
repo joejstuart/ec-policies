@@ -484,6 +484,36 @@ def generate_with_tools(
         if not tool_calls:
             tool_calls = parse_tool_calls(generated_text)
         
+        # Validate: if we're editing a file, we should have read it first
+        # (This enforces the correct workflow: read → reason → write)
+        if tool_calls:
+            write_calls = [tc for tc in tool_calls if tc.get("function", {}).get("name") == "write_file"]
+            if write_calls:
+                # Check if we've read a file in this conversation
+                has_read = any(
+                    msg.get("role") == "tool" and 
+                    "tool_call_id" in msg and
+                    any(tc.get("id") == msg.get("tool_call_id") and 
+                        tc.get("function", {}).get("name") == "read_file"
+                        for tc in (msg.get("tool_calls", []) if isinstance(msg.get("tool_calls"), list) else [])
+                        for prev_msg in conversation_messages
+                        if prev_msg.get("role") == "assistant" and "tool_calls" in prev_msg
+                        for tc in prev_msg.get("tool_calls", [])
+                    )
+                    for msg in conversation_messages
+                )
+                # Check if there was a read_file call in previous assistant messages
+                for msg in conversation_messages:
+                    if msg.get("role") == "assistant" and "tool_calls" in msg:
+                        for tc in msg.get("tool_calls", []):
+                            if tc.get("function", {}).get("name") == "read_file":
+                                has_read = True
+                                break
+                
+                if not has_read and verbose:
+                    print(f"\n[Iteration {iteration}] ⚠️  WARNING: write_file called without read_file first")
+                    print(f"   Correct workflow: read_file → reason → write_file with complete content")
+        
         # Remove tool call JSON from the displayed content (clean it up)
         # The model might output "Tool calls: [...]" in the text, but we'll parse and execute them separately
         assistant_content_clean = assistant_content
@@ -518,8 +548,14 @@ def generate_with_tools(
                 print(f"\n[Iteration {iteration}] ⚠️  No tool calls detected in response")
                 print(f"   Looking for: JSON tool_calls, function patterns, or tool call syntax")
         
-        # If no tool calls, try to infer from natural language
+        # If no tool calls, try to infer from natural language (LAST RESORT)
+        # NOTE: This is a fallback. The model should generate tool calls directly.
+        # We log when inference is used so we can improve training.
         if not tool_calls:
+            if verbose:
+                print(f"\n[Iteration {iteration}] ⚠️  WARNING: No tool calls detected, attempting natural language inference")
+                print(f"   This indicates the model needs better training on tool call generation")
+            
             # Check if the model is describing a file operation
             content_lower = assistant_content.lower()
             
@@ -766,6 +802,29 @@ def generate_with_tools(
         if tool_calls and "tool_calls" not in assistant_msg:
             assistant_msg["tool_calls"] = tool_calls
         
+        # Validate workflow before executing
+        # Check: if we're writing a file, ensure it contains complete content (not diff-like)
+        for tool_call in tool_calls:
+            func_name = tool_call.get("function", {}).get("name", "")
+            if func_name == "write_file":
+                try:
+                    args = json.loads(tool_call.get("function", {}).get("arguments", "{}"))
+                    contents = args.get("contents", "")
+                    # Check if content looks like a diff or patch (common indicators)
+                    if contents and (
+                        contents.strip().startswith("---") or
+                        contents.strip().startswith("+++") or
+                        contents.strip().startswith("@") or
+                        "diff" in contents.lower()[:100] or
+                        "patch" in contents.lower()[:100]
+                    ):
+                        if verbose:
+                            print(f"\n[Iteration {iteration}] ⚠️  WARNING: write_file content looks like a diff/patch")
+                            print(f"   Model should generate complete file content, not diffs")
+                            print(f"   Content preview: {contents[:200]}...")
+                except:
+                    pass
+        
         # Execute tool calls
         if tool_calls:
             if verbose:
@@ -882,7 +941,7 @@ def get_system_prompt_with_tools(mode: str = "generic") -> str:
     """
     if mode == "generic":
         # Generic file operations prompt (matches training data)
-        return """Your job is to edit files using tools exactly as the user instructs.
+        return """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
@@ -927,13 +986,17 @@ The input structure is:
 
 When adding a new rule to an existing policy file:
 1. First, read the existing file using the read_file tool
-2. Keep the existing package declaration and imports
-3. Add the new rule after existing deny rules
-4. Place helper rules (starting with _) after all deny rules
-5. Maintain proper formatting and spacing
-6. Include METADATA annotations for the new rule
-7. Preserve all existing rules and helpers
-8. Save the updated file using the write_file tool
+2. Read and understand the current file content
+3. Generate the COMPLETE updated file content (not a diff or patch)
+   - Keep the existing package declaration and imports
+   - Add the new rule after existing deny rules
+   - Place helper rules (starting with _) after all deny rules
+   - Maintain proper formatting and spacing
+   - Include METADATA annotations for the new rule
+   - Preserve all existing rules and helpers
+4. Use write_file with the COMPLETE new file content
+
+**CRITICAL**: Always generate the entire file content in write_file, never just the changes or a diff.
 
 ## Available Tools
 

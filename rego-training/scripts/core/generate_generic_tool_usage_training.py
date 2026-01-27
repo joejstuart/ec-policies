@@ -30,13 +30,27 @@ def create_simple_file_edit_example(
     
     import uuid
     
-    system_prompt = """Your job is to edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
-CRITICAL GUIDELINES:
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
+## CORRECT WORKFLOW (CRITICAL):
+
+1. **Read the file first**: Generate a read_file tool call to get the current file content
+2. **Reason about changes**: Look at the file content (from tool response) and understand what needs to change
+3. **Generate COMPLETE file content**: Create the entire new file content as text (NOT a diff or patch)
+4. **Write the complete file**: Generate a write_file tool call with the complete new file content
+
+The system will execute your tool calls. You never touch the filesystem directly.
+
+## CRITICAL GUIDELINES:
+
+- **ALWAYS generate the COMPLETE file content** in write_file, not just the changes
+- **NEVER generate diffs, patches, or partial content** - always the full file
 - Do NOT infer or generate content based on file extensions
 - Do NOT create new content that wasn't in the original file
 - Do NOT "fix" or "improve" the file content
@@ -52,7 +66,8 @@ CRITICAL GUIDELINES:
 - Do NOT infer or add content that wasn't in the file you read
 - Preserve all other content exactly as it was (if any exists)
 - Follow the user's instructions precisely and literally
-- Use tools to read, modify, and write files"""
+- Generate tool calls (read_file, write_file) that the system will execute
+- You never directly access or modify files - only generate tool calls and content"""
     
     user_prompt = f"""Edit the file at `{file_path}`.
 
@@ -72,7 +87,7 @@ arguments: {json.dumps({"path": file_path})}
     
     tool_response_1_content = original_content
     
-    assistant_content_2 = f"""Now I'll make the requested changes and save the file.
+    assistant_content_2 = f"""Now I'll generate the complete updated file content and save it.
 
 <tool_call>
 name: write_file
@@ -256,13 +271,17 @@ func main() {
 
 def create_empty_file_example_simple(file_path: str) -> Dict:
     """Create example: Create an empty file (no content specified)."""
-    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
 CRITICAL GUIDELINES:
+- Generate tool calls (read_file, write_file) that the system will execute
+- You never directly access or modify files - only generate tool calls and content
 - Do NOT infer or generate content based on file extensions
 - Do NOT create default/example content unless the user explicitly requests it
 - If the user says "create a file X" without specifying content, create an EMPTY file
@@ -490,13 +509,17 @@ Line 2: More content"""
 def create_new_file_example(file_path: str) -> Dict:
     """Create example: Create a new file from scratch."""
     # For new files, we don't read first - just write
-    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
 CRITICAL GUIDELINES:
+- Generate tool calls (read_file, write_file) that the system will execute
+- You never directly access or modify files - only generate tool calls and content
 - Do NOT infer or generate content based on file extensions
 - Do NOT create default/example content unless the user explicitly requests it
 - If the user says "create a file X" without specifying content, create an EMPTY file
@@ -565,13 +588,17 @@ arguments: {json.dumps({
 
 def create_new_file_with_content_example(file_path: str) -> Dict:
     """Create example: Create a new file with specific content provided."""
-    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
 Guidelines:
+- Generate tool calls (read_file, write_file) that the system will execute
+- You never directly access or modify files - only generate tool calls and content
 - Do not infer missing logic
 - Do not create domain-specific content
 - Only create the content the user describes
@@ -653,13 +680,17 @@ arguments: {json.dumps({
 
 def create_new_file_from_template_example(file_path: str) -> Dict:
     """Create example: Create a new file based on a template/description."""
-    system_prompt = """Your job is to create and edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
 - `write_file(path, contents)`: Write contents to a file at the given path
 
+**IMPORTANT**: You do NOT directly edit files. You generate tool calls that the system executes.
+
 CRITICAL GUIDELINES:
+- Generate tool calls (read_file, write_file) that the system will execute
+- You never directly access or modify files - only generate tool calls and content
 - Do NOT infer or generate content based on file extensions
 - Do NOT create default/example content unless the user explicitly requests it
 - If the user says "create a file X" without specifying content, create an EMPTY file
@@ -798,7 +829,7 @@ def create_noop_example(file_path: str) -> Dict:
 Line 2: Second line
 Line 3: Third line"""
     
-    system_prompt = """Your job is to edit files using tools exactly as the user instructs.
+    system_prompt = """Your job is to help users modify files by generating tool calls and complete file content.
 
 You have access to these tools:
 - `read_file(path)`: Read the contents of a file at the given path
