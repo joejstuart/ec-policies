@@ -44,7 +44,8 @@ test_pass_when_condition_met if {
 											"name": "MIT"
 										}
 									}
-								]
+								],
+								"properties": "default-value"
 							}
 						]
 					}

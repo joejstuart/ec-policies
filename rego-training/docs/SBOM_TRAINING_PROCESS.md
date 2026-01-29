@@ -237,25 +237,36 @@ Validate SBOM Rego rules against test cases to ensure correctness (TDD verificat
 Convert validated SBOM Rego rules into training data for the Qwen3 model.
 
 ### Scripts Used
-- **`generate_sbom_training_from_rules.py`** - Generate SBOM training data from validated Rego rules
+- **`generate_sbom_training_from_rules.py`** - Generate SBOM rule generation training data (Requirement → Rule)
+- **`generate_sbom_test_creation_training.py`** - Generate SBOM test creation training data (Rule → Test, Requirement → Rule + Test)
 
 ### Process
 
-1. **Generate SBOM Training Data**: Create training examples for SBOM rule generation
+1. **Generate SBOM Rule Generation Training Data**: Create training examples for SBOM rule generation
    ```bash
-   cd rego-training/scripts/core
-   python generate_sbom_training_from_rules.py
+   python3 scripts/core/generate_sbom_training_from_rules.py
    ```
    This:
-   - Reads all Rego files from `sbom_rego_rules/`
+   - Reads all Rego files from `sbom_rego_rules/` (excludes `*_test.rego`)
    - Extracts natural language from METADATA
    - Extracts Rego code
-   - Validates against test cases
-   - Creates training examples in Qwen3 chat format
+   - Creates training examples: **Requirement → Rule**
    - Outputs to `sbom_data/qwen3-sbom-training-data.jsonl`
 
+2. **Generate SBOM Test Creation Training Data**: Create training examples for test creation
+   ```bash
+   python3 scripts/core/generate_sbom_test_creation_training.py
+   ```
+   This:
+   - Reads all Rego files and corresponding test files from `sbom_rego_rules/`
+   - Creates two types of training examples:
+     - **Rule → Test**: Given a Rego rule, create tests for it
+     - **Requirement → Rule + Test**: Given a requirement, create both rule and tests
+   - Outputs to `sbom_data/qwen3-sbom-test-creation-training.jsonl`
+
 ### Output
-- `sbom_data/qwen3-sbom-training-data.jsonl` - SBOM rule generation training data
+- `sbom_data/qwen3-sbom-training-data.jsonl` - SBOM rule generation training data (202 examples)
+- `sbom_data/qwen3-sbom-test-creation-training.jsonl` - SBOM test creation training data (404 examples: 202 Rule→Test + 202 Requirement→Rule+Test)
 
 ## Phase 7: Model Fine-tuning
 
@@ -324,10 +335,19 @@ cd sbom_rego_rules && opa test .
 # If tests fail, fix rules (tests are the contract!)
 
 # 6. Generate training data
-python3 scripts/core/generate_sbom_training_from_rules.py
+python3 scripts/core/generate_sbom_training_from_rules.py  # Requirement → Rule
+python3 scripts/core/generate_sbom_test_creation_training.py  # Rule → Test, Requirement → Rule + Test
 
-# 7. Fine-tune model
-python3 scripts/core/finetune_qwen3.py --training-data sbom_data/qwen3-sbom-training-data.jsonl --output-dir ./qwen3-sbom-finetuned
+# 7. Merge training data (optional, if combining with other training data)
+python3 scripts/core/merge_training_data.py \
+  --sbom-data sbom_data/qwen3-sbom-training-data.jsonl \
+  --sbom-test-creation-data sbom_data/qwen3-sbom-test-creation-training.jsonl \
+  --output sbom_data/qwen3-sbom-complete-training.jsonl
+
+# 8. Fine-tune model
+python3 scripts/core/finetune_qwen3.py \
+  --training-data sbom_data/qwen3-sbom-complete-training.jsonl \
+  --output-dir ./qwen3-sbom-finetuned
 ```
 
 ### Adding New SBOM Rules
@@ -348,9 +368,18 @@ cd sbom_rego_rules && opa test .
 
 # 6. Regenerate training data
 python3 scripts/core/generate_sbom_training_from_rules.py
+python3 scripts/core/generate_sbom_test_creation_training.py
 
-# 7. Retrain model
-python3 scripts/core/finetune_qwen3.py --training-data sbom_data/qwen3-sbom-training-data.jsonl --output-dir ./qwen3-sbom-finetuned
+# 7. Merge training data (optional)
+python3 scripts/core/merge_training_data.py \
+  --sbom-data sbom_data/qwen3-sbom-training-data.jsonl \
+  --sbom-test-creation-data sbom_data/qwen3-sbom-test-creation-training.jsonl \
+  --output sbom_data/qwen3-sbom-complete-training.jsonl
+
+# 8. Retrain model
+python3 scripts/core/finetune_qwen3.py \
+  --training-data sbom_data/qwen3-sbom-complete-training.jsonl \
+  --output-dir ./qwen3-sbom-finetuned
 ```
 
 ## Current Statistics

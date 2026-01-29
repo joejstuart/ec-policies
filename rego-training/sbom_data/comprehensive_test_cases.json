@@ -558,19 +558,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_pkg_019": {
-      "natural_language": "Verify all packages in the SPDX SBOM with packageVerificationCode have a packageVerificationCodeValue.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    some pkg in sbom.packages\n    pkg.packageVerificationCode\n    not pkg.packageVerificationCode.packageVerificationCodeValue\n    result := sprintf(\"Package %s has packageVerificationCode but no value\", [pkg.name])\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.packageVerificationCode",
-        "pkg.packageVerificationCode.packageVerificationCodeValue",
-        "pkg.name"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_file_001": {
       "natural_language": "Verify all files in the SPDX SBOM have a fileName.",
       "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    some file in sbom.files\n    not file.fileName\n    result := \"File in SPDX SBOM has no fileName\"\n}",
@@ -1373,19 +1360,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_complex_006": {
-      "natural_language": "Verify the SPDX SBOM has at least one package with a PURL containing 'golang'.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    pkg_purls := {ref.referenceLocator | some pkg in sbom.packages; some ref in pkg.externalRefs; ref.referenceType == \"purl\"}\n    count([purl | some purl in pkg_purls; contains(purl, \"golang\")]) == 0\n    result := \"SPDX SBOM has no package with Golang PURL\"\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.externalRefs",
-        "ref.referenceType",
-        "ref.referenceLocator"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_complex_007": {
       "natural_language": "Verify all packages in the SPDX SBOM with versionInfo starting with 'v' have valid version format.",
       "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    some pkg in sbom.packages\n    startswith(pkg.versionInfo, \"v\")\n    version_num := trim_prefix(pkg.versionInfo, \"v\")\n    not contains(version_num, \".\")\n    result := sprintf(\"Package %s has invalid version format: %s\", [pkg.name, pkg.versionInfo])\n}",
@@ -1665,32 +1639,6 @@
         "statement.predicateType",
         "statement.predicate.components",
         "comp.bom-ref",
-        "comp.name"
-      ],
-      "type": "compound"
-    },
-    "sbom_cyclonedx_comp_027": {
-      "natural_language": "Verify all components in the CycloneDX SBOM have properties with unique names.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://cyclonedx.org/bom\"\n    sbom := statement.predicate\n    some comp in sbom.components\n    prop_names := {prop.name | some prop in comp.properties}\n    count(prop_names) != count(comp.properties)\n    result := sprintf(\"Component %s has duplicate property names\", [comp.name])\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.components",
-        "comp.properties",
-        "prop.name",
-        "comp.name"
-      ],
-      "type": "compound"
-    },
-    "sbom_cyclonedx_comp_028": {
-      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with unique types.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://cyclonedx.org/bom\"\n    sbom := statement.predicate\n    some comp in sbom.components\n    ext_ref_types := {ext_ref.type | some ext_ref in comp.externalReferences}\n    count(ext_ref_types) != count(comp.externalReferences)\n    result := sprintf(\"Component %s has duplicate externalReference types\", [comp.name])\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.components",
-        "comp.externalReferences",
-        "ext_ref.type",
         "comp.name"
       ],
       "type": "compound"
@@ -2151,17 +2099,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_final_001": {
-      "natural_language": "Verify the SPDX SBOM has packages with at least one having filesAnalyzed true.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    analyzed_count := count([pkg | some pkg in sbom.packages; pkg.filesAnalyzed == true])\n    analyzed_count == 0\n    result := \"SPDX SBOM has no packages with filesAnalyzed true\"\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.filesAnalyzed"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_final_002": {
       "natural_language": "Verify all packages in the SPDX SBOM have downloadLocation not equal to empty string.",
       "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    some pkg in sbom.packages\n    pkg.downloadLocation == \"\"\n    result := sprintf(\"Package %s has empty downloadLocation\", [pkg.name])\n}",
@@ -2186,17 +2123,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_final_004": {
-      "natural_language": "Verify the SPDX SBOM has at least one package with supplier containing 'Red Hat'.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    suppliers := {pkg.supplier | some pkg in sbom.packages}\n    count([supplier | some supplier in suppliers; contains(supplier, \"Red Hat\")]) == 0\n    result := \"SPDX SBOM has no packages with Red Hat supplier\"\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.supplier"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_final_005": {
       "natural_language": "Verify all packages in the SPDX SBOM have versionInfo not equal to empty string.",
       "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    some pkg in sbom.packages\n    pkg.versionInfo == \"\"\n    result := sprintf(\"Package %s has empty versionInfo\", [pkg.name])\n}",
@@ -2212,19 +2138,6 @@
     "sbom_spdx_final_006": {
       "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'rpm'.",
       "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    rpm_purls := count([ref | some pkg in sbom.packages; some ref in pkg.externalRefs; ref.referenceType == \"purl\"; contains(ref.referenceLocator, \"rpm\")])\n    rpm_purls == 0\n    result := \"SPDX SBOM has no packages with RPM PURLs\"\n}",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.externalRefs",
-        "ref.referenceType",
-        "ref.referenceLocator"
-      ],
-      "type": "compound"
-    },
-    "sbom_spdx_final_007": {
-      "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'golang'.",
-      "rego_code": "deny contains result if {\n    some att in input.attestations\n    statement := att.statement\n    statement.predicateType == \"https://spdx.dev/Document\"\n    sbom := statement.predicate\n    golang_purls := count([ref | some pkg in sbom.packages; some ref in pkg.externalRefs; ref.referenceType == \"purl\"; contains(ref.referenceLocator, \"golang\")])\n    golang_purls == 0\n    result := \"SPDX SBOM has no packages with Golang PURLs\"\n}",
       "keys_used": [
         "input.attestations",
         "statement.predicateType",

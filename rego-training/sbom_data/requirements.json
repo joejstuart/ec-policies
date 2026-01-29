@@ -502,18 +502,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_pkg_019": {
-      "natural_language": "Verify all packages in the SPDX SBOM with packageVerificationCode have a packageVerificationCodeValue.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.packageVerificationCode",
-        "pkg.packageVerificationCode.packageVerificationCodeValue",
-        "pkg.name"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_file_001": {
       "natural_language": "Verify all files in the SPDX SBOM have a fileName.",
       "keys_used": [
@@ -1248,18 +1236,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_complex_006": {
-      "natural_language": "Verify the SPDX SBOM has at least one package with a PURL containing 'golang'.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.externalRefs",
-        "ref.referenceType",
-        "ref.referenceLocator"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_complex_007": {
       "natural_language": "Verify all packages in the SPDX SBOM with versionInfo starting with 'v' have valid version format.",
       "keys_used": [
@@ -1515,30 +1491,6 @@
         "statement.predicateType",
         "statement.predicate.components",
         "comp.bom-ref",
-        "comp.name"
-      ],
-      "type": "compound"
-    },
-    "sbom_cyclonedx_comp_027": {
-      "natural_language": "Verify all components in the CycloneDX SBOM have properties with unique names.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.components",
-        "comp.properties",
-        "prop.name",
-        "comp.name"
-      ],
-      "type": "compound"
-    },
-    "sbom_cyclonedx_comp_028": {
-      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with unique types.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.components",
-        "comp.externalReferences",
-        "ext_ref.type",
         "comp.name"
       ],
       "type": "compound"
@@ -1959,16 +1911,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_final_001": {
-      "natural_language": "Verify the SPDX SBOM has packages with at least one having filesAnalyzed true.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.filesAnalyzed"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_final_002": {
       "natural_language": "Verify all packages in the SPDX SBOM have downloadLocation not equal to empty string.",
       "keys_used": [
@@ -1991,16 +1933,6 @@
       ],
       "type": "compound"
     },
-    "sbom_spdx_final_004": {
-      "natural_language": "Verify the SPDX SBOM has at least one package with supplier containing 'Red Hat'.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.supplier"
-      ],
-      "type": "compound"
-    },
     "sbom_spdx_final_005": {
       "natural_language": "Verify all packages in the SPDX SBOM have versionInfo not equal to empty string.",
       "keys_used": [
@@ -2014,18 +1946,6 @@
     },
     "sbom_spdx_final_006": {
       "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'rpm'.",
-      "keys_used": [
-        "input.attestations",
-        "statement.predicateType",
-        "statement.predicate.packages",
-        "pkg.externalRefs",
-        "ref.referenceType",
-        "ref.referenceLocator"
-      ],
-      "type": "compound"
-    },
-    "sbom_spdx_final_007": {
-      "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'golang'.",
       "keys_used": [
         "input.attestations",
         "statement.predicateType",

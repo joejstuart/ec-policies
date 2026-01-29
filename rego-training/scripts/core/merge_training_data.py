@@ -73,6 +73,12 @@ def main():
         help="Path to SBOM training data (relative to project root, optional)"
     )
     parser.add_argument(
+        "--sbom-test-creation-data",
+        type=str,
+        default=None,
+        help="Path to SBOM test creation training data (relative to project root, optional)"
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="data/qwen3-complete-training.jsonl",
@@ -171,8 +177,23 @@ def main():
             sbom_examples = load_jsonl(default_sbom)
             print(f"   Found {len(sbom_examples)} SBOM training examples")
     
+    # Load SBOM test creation training data (optional)
+    sbom_test_creation_examples = []
+    if args.sbom_test_creation_data:
+        print(f"\n📖 Loading SBOM test creation training data...")
+        sbom_test_creation_path = resolve_path(args.sbom_test_creation_data)
+        sbom_test_creation_examples = load_jsonl(sbom_test_creation_path)
+        print(f"   Found {len(sbom_test_creation_examples)} SBOM test creation examples")
+    else:
+        # Try default path
+        default_sbom_test = project_root / "sbom_data/qwen3-sbom-test-creation-training.jsonl"
+        if default_sbom_test.exists():
+            print(f"\n📖 Loading SBOM test creation training data (from default path)...")
+            sbom_test_creation_examples = load_jsonl(default_sbom_test)
+            print(f"   Found {len(sbom_test_creation_examples)} SBOM test creation examples")
+    
     # Combine all examples
-    all_examples = rule_examples + test_examples + file_editing_examples + generic_tool_examples + sbom_examples
+    all_examples = rule_examples + test_examples + file_editing_examples + generic_tool_examples + sbom_examples + sbom_test_creation_examples
     
     # Shuffle for better training (optional but recommended)
     import random
@@ -195,6 +216,8 @@ def main():
         print(f"   Generic tool usage examples: {len(generic_tool_examples)}")
     if sbom_examples:
         print(f"   SBOM training examples: {len(sbom_examples)}")
+    if sbom_test_creation_examples:
+        print(f"   SBOM test creation examples: {len(sbom_test_creation_examples)}")
     print(f"   Total examples: {len(all_examples)}")
     print(f"   Output: {args.output}")
     

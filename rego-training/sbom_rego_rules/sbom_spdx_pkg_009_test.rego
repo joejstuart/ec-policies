@@ -48,7 +48,8 @@ test_pass_when_condition_met if {
 										"referenceType": "purl",
 										"referenceLocator": "pkg:rpm/test-package@1.0.0"
 									}
-								]
+								],
+								"licenseConcluded": "ValidLicenseconcluded"
 							}
 						],
 						"files": []

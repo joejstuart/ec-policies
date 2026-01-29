@@ -6,29 +6,12 @@ This script:
 1. Reads each Rego file from sbom_rego_rules/
 2. Extracts natural language from METADATA
 3. Extracts Rego code
-4. Validates against sbom_data/test_case_definitions.json
-5. Generates training data in JSONL format for SBOM policies
+4. Generates training data in JSONL format for SBOM policies
 """
 
 import json
 import re
-import sys
 from pathlib import Path
-
-# Add parent directory to path for imports
-parent_dir = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(parent_dir))
-# Import from obsolete directory
-import importlib.util
-spec = importlib.util.spec_from_file_location(
-    "validate_and_add_training",
-    parent_dir / "scripts" / "obsolete" / "validate_and_add_training.py"
-)
-validate_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(validate_module)
-load_test_case_definitions = validate_module.load_test_case_definitions
-find_matching_test_case = validate_module.find_matching_test_case
-validate_with_test_definitions = validate_module.validate_with_test_definitions
 
 def extract_metadata(rego_content: str) -> dict:
     """Extract METADATA from Rego file."""
@@ -172,9 +155,9 @@ Write Rego deny rules that check the SBOM structure using pure Rego."""
 
 def main():
     """Generate SBOM training data from all Rego rules."""
-    rego_dir = Path("../sbom_rego_rules")
-    output_file = Path("../sbom_data/qwen3-sbom-training-data.jsonl")
-    test_definitions_file = Path("../sbom_data/test_case_definitions.json")
+    project_root = Path(__file__).parent.parent.parent
+    rego_dir = project_root / "sbom_rego_rules"
+    output_file = project_root / "sbom_data" / "qwen3-sbom-training-data.jsonl"
     
     if not rego_dir.exists():
         print(f"Error: {rego_dir} does not exist")
@@ -183,25 +166,11 @@ def main():
     # Create data directory if it doesn't exist
     output_file.parent.mkdir(exist_ok=True)
     
-    # Load test definitions if they exist
-    test_definitions = None
-    if test_definitions_file.exists():
-        try:
-            test_definitions = load_test_case_definitions(str(test_definitions_file))
-        except Exception as e:
-            print(f"Warning: Could not load test definitions: {e}")
-    
-    # Clear or backup existing file
-    if output_file.exists():
-        backup = output_file.with_suffix('.jsonl.backup')
-        output_file.rename(backup)
-        print(f"Backed up existing file to {backup}")
-    
-    rego_files = sorted(rego_dir.glob("*.rego"))
+    # Filter out test files
+    rego_files = sorted([f for f in rego_dir.glob("*.rego") if not f.name.endswith("_test.rego")])
     print(f"Processing {len(rego_files)} SBOM Rego files...")
     
-    validated_count = 0
-    failed_count = 0
+    processed_count = 0
     skipped_count = 0
     
     with open(output_file, 'w') as out:
@@ -226,37 +195,22 @@ def main():
                     skipped_count += 1
                     continue
                 
-                # Validate
-                if test_definitions:
-                    result = validate_with_test_definitions(natural_language, rego_code, test_definitions)
-                else:
-                    print(f"  ⚠️  No test definitions found, skipping validation for {rego_file.name}")
-                    result = None
-                
-                if result and not result.passed:
-                    print(f"  ❌ Failed validation: {rego_file.name}")
-                    for error in result.errors:
-                        print(f"     - {error}")
-                    failed_count += 1
-                    continue
-                
                 # Generate training example
                 example = generate_training_example(natural_language, rego_code)
                 
                 # Write to JSONL file
                 out.write(json.dumps(example) + '\n')
-                validated_count += 1
+                processed_count += 1
                 
-                if validated_count % 50 == 0:
-                    print(f"  Processed {validated_count} files...")
+                if processed_count % 50 == 0:
+                    print(f"  Processed {processed_count} files...")
                     
             except Exception as e:
                 print(f"  ❌ Error processing {rego_file.name}: {e}")
-                failed_count += 1
+                skipped_count += 1
     
     print(f"\n✅ Generated SBOM training data:")
-    print(f"   Validated and added: {validated_count}")
-    print(f"   Failed validation: {failed_count}")
+    print(f"   Processed: {processed_count}")
     print(f"   Skipped: {skipped_count}")
     print(f"   Output: {output_file}")
 

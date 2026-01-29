@@ -44,7 +44,8 @@ test_pass_when_condition_met if {
 											"name": "MIT"
 										}
 									}
-								]
+								],
+								"cpe": "cpe:2.3:a:test:component:1.0.0:*:*:*:*:*:*:*"
 							}
 						]
 					}

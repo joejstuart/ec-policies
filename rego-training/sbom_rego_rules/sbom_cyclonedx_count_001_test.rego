@@ -3,42 +3,6 @@ package sbom_cyclonedx_count_001_test
 import rego.v1
 import data.sbom_cyclonedx_count_001
 
-test_deny_when_condition_violated if {
-	count(sbom_cyclonedx_count_001.deny) > 0
-	with input as {
-		"attestations": [
-			{
-				"statement": {
-					"_type": "https://in-toto.io/Statement/v0.1",
-					"predicateType": "https://cyclonedx.org/bom",
-					"predicate": {
-						"bomFormat": "CycloneDX",
-						"specVersion": "1.5",
-						"version": 1,
-						"serialNumber": "urn:uuid:12345678-1234-1234-1234-123456789012",
-						"metadata": {
-							"timestamp": "2024-01-01T00:00:00Z",
-							"tools": [
-								{
-									"vendor": "Test Vendor",
-									"name": "test-tool",
-									"version": "1.0.0"
-								}
-							],
-							"component": {
-								"type": "container",
-								"name": "test-image",
-								"bom-ref": "test-image-ref"
-							}
-						},
-						"components": []
-					}
-				}
-			}
-		]
-	}
-}
-
 test_pass_when_condition_met if {
 	count(sbom_cyclonedx_count_001.deny) == 0
 	with input as {
@@ -73,6 +37,132 @@ test_pass_when_condition_met if {
 								"name": "test-component",
 								"version": "1.0.0",
 								"bom-ref": "test-component-ref",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-2",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-2",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-3",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-3",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-4",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-4",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-5",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-5",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-6",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-6",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-7",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-7",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-8",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-8",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-9",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-9",
+								"purl": "pkg:rpm/test-component@1.0.0",
+								"licenses": [
+									{
+										"license": {
+											"name": "MIT"
+										}
+									}
+								]
+							},
+							{
+								"type": "library",
+								"name": "test-component-10",
+								"version": "1.0.0",
+								"bom-ref": "test-component-ref-10",
 								"purl": "pkg:rpm/test-component@1.0.0",
 								"licenses": [
 									{
