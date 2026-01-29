@@ -1,0 +1,2156 @@
+{
+  "metadata": {
+    "source": "comprehensive_test_cases.json",
+    "extracted_by": "extract_sbom_requirements.py",
+    "description": "SBOM policy requirements for TDD workflow. Contains only natural language descriptions, keys_used, and type. No implementation (rego_code).",
+    "total_requirements": 202
+  },
+  "requirements": {
+    "sbom_spdx_001": {
+      "natural_language": "Verify the SPDX SBOM contains packages.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_002": {
+      "natural_language": "Verify the SPDX SBOM contains files.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_003": {
+      "natural_language": "Verify the SPDX SBOM has a valid SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.SPDXID"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_004": {
+      "natural_language": "Verify the SPDX SBOM has a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.name"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_005": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_006": {
+      "natural_language": "Verify no packages in the SPDX SBOM have version '(devel)'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_007": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a supplier.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.supplier",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_008": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a declared license.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.licenseDeclared",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_009": {
+      "natural_language": "Verify all packages in the SPDX SBOM have at least one external reference.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_010": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a PURL external reference.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_011": {
+      "natural_language": "Verify no packages in the SPDX SBOM have external references with type 'cpe23Type'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_012": {
+      "natural_language": "Verify the SPDX SBOM has creation info with a created timestamp.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.created"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_013": {
+      "natural_language": "Verify the SPDX SBOM has at least one creator.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.creators"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_014": {
+      "natural_language": "Verify the SPDX SBOM has a valid spdxVersion.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.spdxVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_001": {
+      "natural_language": "Verify the CycloneDX SBOM contains components.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_002": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_003": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_004": {
+      "natural_language": "Verify all components in the CycloneDX SBOM are of type 'library'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_005": {
+      "natural_language": "Verify the CycloneDX SBOM has a valid bomFormat.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.bomFormat"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_006": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a version.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.version",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_doc_001": {
+      "natural_language": "Verify the SPDX SBOM has a valid SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.SPDXID"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_002": {
+      "natural_language": "Verify the SPDX SBOM has a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.name"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_003": {
+      "natural_language": "Verify the SPDX SBOM has a valid spdxVersion.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.spdxVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_004": {
+      "natural_language": "Verify the SPDX SBOM has a documentNamespace.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.documentNamespace"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_005": {
+      "natural_language": "Verify the SPDX SBOM has a dataLicense.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.dataLicense"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_006": {
+      "natural_language": "Verify the SPDX SBOM has creation info.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_007": {
+      "natural_language": "Verify the SPDX SBOM has creation info with a created timestamp.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.created"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_008": {
+      "natural_language": "Verify the SPDX SBOM has at least one creator.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.creators"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_009": {
+      "natural_language": "Verify the SPDX SBOM contains packages.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_010": {
+      "natural_language": "Verify the SPDX SBOM contains files.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_pkg_001": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM have an SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.SPDXID",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_003": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a versionInfo.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_004": {
+      "natural_language": "Verify no packages in the SPDX SBOM have version '(devel)'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_005": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a downloadLocation.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.downloadLocation",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_006": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a supplier.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.supplier",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_007": {
+      "natural_language": "Verify all packages in the SPDX SBOM have an originator.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.originator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_008": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a licenseDeclared.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.licenseDeclared",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_009": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a licenseConcluded.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.licenseConcluded",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_010": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a copyrightText.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.copyrightText",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_011": {
+      "natural_language": "Verify all packages in the SPDX SBOM have sourceInfo.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.sourceInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_012": {
+      "natural_language": "Verify all packages in the SPDX SBOM have at least one external reference.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_013": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a PURL external reference.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_014": {
+      "natural_language": "Verify no packages in the SPDX SBOM have external references with type 'cpe23Type'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_015": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with category 'PACKAGE_MANAGER'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceCategory",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_016": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksums.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_017": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a SHA256 checksum.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_018": {
+      "natural_language": "Verify all packages in the SPDX SBOM with filesAnalyzed true have a packageVerificationCode.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.filesAnalyzed",
+        "pkg.packageVerificationCode",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_019": {
+      "natural_language": "Verify all packages in the SPDX SBOM with packageVerificationCode have a packageVerificationCodeValue.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.packageVerificationCode",
+        "pkg.packageVerificationCode.packageVerificationCodeValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_001": {
+      "natural_language": "Verify all files in the SPDX SBOM have a fileName.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_002": {
+      "natural_language": "Verify all files in the SPDX SBOM have an SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.SPDXID",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_003": {
+      "natural_language": "Verify all files in the SPDX SBOM have checksums.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_004": {
+      "natural_language": "Verify all files in the SPDX SBOM have a SHA256 checksum.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.algorithm",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_doc_001": {
+      "natural_language": "Verify the CycloneDX SBOM has a valid bomFormat.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.bomFormat"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_002": {
+      "natural_language": "Verify the CycloneDX SBOM has a specVersion.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.specVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_003": {
+      "natural_language": "Verify the CycloneDX SBOM contains components.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_004": {
+      "natural_language": "Verify the CycloneDX SBOM has metadata.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_comp_001": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_002": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_003": {
+      "natural_language": "Verify all components in the CycloneDX SBOM are of type 'library'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_004": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a version.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.version",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_005": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a purl.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_006": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a bom-ref.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.bom-ref",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_007": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have licenses.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.licenses",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_008": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a publisher.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.publisher",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_009": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a cpe.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.cpe",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_010": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have properties.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.properties",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_011": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_001": {
+      "natural_language": "Verify no packages in the SPDX SBOM have external references with referenceCategory 'SECURITY'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceCategory",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM with filesAnalyzed true have at least one file.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.filesAnalyzed",
+        "statement.predicate.files",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_003": {
+      "natural_language": "Verify the SPDX SBOM name contains '@sha256:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.name"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_complex_004": {
+      "natural_language": "Verify the SPDX SBOM documentNamespace contains 'spdxdocs'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.documentNamespace"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_complex_001": {
+      "natural_language": "Verify the CycloneDX SBOM metadata has a timestamp.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.timestamp"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_complex_002": {
+      "natural_language": "Verify the CycloneDX SBOM metadata has tools.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_complex_003": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_complex_004": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a version.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.version",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_020": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid SPDXID format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.SPDXID",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_021": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with valid referenceLocator.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_022": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with valid referenceType.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_023": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with valid referenceCategory.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceCategory",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_024": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksums with valid algorithm.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_025": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksums with valid checksumValue.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.checksumValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_026": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a SHA1 checksum.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_027": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid downloadLocation format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.downloadLocation",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_028": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid supplier format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.supplier",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_029": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid originator format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.originator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_030": {
+      "natural_language": "Verify no packages in the SPDX SBOM have empty versionInfo.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_031": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid licenseDeclared format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.licenseDeclared",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_032": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a valid licenseConcluded format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.licenseConcluded",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_033": {
+      "natural_language": "Verify all packages in the SPDX SBOM have PURL external references starting with 'pkg:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_034": {
+      "natural_language": "Verify all packages in the SPDX SBOM have CPE external references starting with 'cpe:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_005": {
+      "natural_language": "Verify all files in the SPDX SBOM have a valid SPDXID format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.SPDXID",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_006": {
+      "natural_language": "Verify all files in the SPDX SBOM have checksums with valid algorithm.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.algorithm",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_007": {
+      "natural_language": "Verify all files in the SPDX SBOM have checksums with valid checksumValue.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.checksumValue",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_008": {
+      "natural_language": "Verify all files in the SPDX SBOM have a SHA1 checksum.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.algorithm",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_009": {
+      "natural_language": "Verify all files in the SPDX SBOM have fileName starting with '/'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_doc_011": {
+      "natural_language": "Verify the SPDX SBOM documentNamespace is a valid URL.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.documentNamespace"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_012": {
+      "natural_language": "Verify the SPDX SBOM creationInfo has a valid licenseListVersion.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.licenseListVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_013": {
+      "natural_language": "Verify all creators in the SPDX SBOM have a valid format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.creators"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_doc_014": {
+      "natural_language": "Verify the SPDX SBOM creationInfo created timestamp is valid ISO 8601.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.created"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_comp_012": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a valid purl format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_013": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a valid cpe format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.cpe",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_014": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have licenses with valid structure.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.licenses",
+        "license_entry.license",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_015": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have licenses with a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.licenses",
+        "license_entry.license.name",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_016": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have properties with a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.properties",
+        "prop.name",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_017": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with a type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "ext_ref.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_018": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with a url.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "ext_ref.url",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_019": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with valid url format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "ext_ref.url",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_020": {
+      "natural_language": "Verify no components in the CycloneDX SBOM have empty version.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.version",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_021": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have valid type values.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_doc_005": {
+      "natural_language": "Verify the CycloneDX SBOM has a valid specVersion format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.specVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_006": {
+      "natural_language": "Verify the CycloneDX SBOM metadata has a component.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.component"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_007": {
+      "natural_language": "Verify the CycloneDX SBOM metadata component has a name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.component.name"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_008": {
+      "natural_language": "Verify the CycloneDX SBOM metadata component has a type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.component.type"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_009": {
+      "natural_language": "Verify the CycloneDX SBOM metadata timestamp is valid ISO 8601.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.timestamp"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_doc_010": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a vendor.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.vendor",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_005": {
+      "natural_language": "Verify the SPDX SBOM has at least one package with a PURL containing 'rpm'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_006": {
+      "natural_language": "Verify the SPDX SBOM has at least one package with a PURL containing 'golang'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_007": {
+      "natural_language": "Verify all packages in the SPDX SBOM with versionInfo starting with 'v' have valid version format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_complex_008": {
+      "natural_language": "Verify the SPDX SBOM has packages from at least one package manager type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceCategory"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_complex_005": {
+      "natural_language": "Verify the CycloneDX SBOM has components with at least one purl type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_complex_006": {
+      "natural_language": "Verify all components in the CycloneDX SBOM with purl have valid purl type.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_035": {
+      "natural_language": "Verify all packages in the SPDX SBOM have unique SPDXIDs.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.SPDXID"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_036": {
+      "natural_language": "Verify all packages in the SPDX SBOM have unique names.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_037": {
+      "natural_language": "Verify all packages in the SPDX SBOM have at least one checksum algorithm in ['SHA1', 'SHA256', 'MD5'].",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_038": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with unique referenceLocators.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_039": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksums with unique algorithms.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_040": {
+      "natural_language": "Verify all packages in the SPDX SBOM with packageVerificationCode have a non-empty value.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.packageVerificationCode",
+        "pkg.packageVerificationCode.packageVerificationCodeValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_041": {
+      "natural_language": "Verify all packages in the SPDX SBOM have sourceInfo containing 'acquired'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.sourceInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_042": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a non-empty name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_043": {
+      "natural_language": "Verify all packages in the SPDX SBOM have a non-empty SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.SPDXID",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pkg_044": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with referenceType in allowed types.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_010": {
+      "natural_language": "Verify all files in the SPDX SBOM have unique SPDXIDs.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.SPDXID"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_011": {
+      "natural_language": "Verify all files in the SPDX SBOM have unique fileNames.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_012": {
+      "natural_language": "Verify all files in the SPDX SBOM have checksums with unique algorithms.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.algorithm",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_013": {
+      "natural_language": "Verify all files in the SPDX SBOM have a non-empty fileName.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_file_014": {
+      "natural_language": "Verify all files in the SPDX SBOM have a non-empty SPDXID.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.SPDXID",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_022": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have unique bom-refs.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.bom-ref"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_023": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have unique names.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_024": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have unique purls.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_025": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a non-empty name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_026": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a non-empty bom-ref.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.bom-ref",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_027": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have properties with unique names.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.properties",
+        "prop.name",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_028": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with unique types.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "ext_ref.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_comp_029": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have licenses with unique names.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.licenses",
+        "license_entry.license.name",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_edge_001": {
+      "natural_language": "Verify the SPDX SBOM has at least one attestation with predicateType 'https://spdx.dev/Document'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_edge_001": {
+      "natural_language": "Verify the CycloneDX SBOM has at least one attestation with predicateType 'https://cyclonedx.org/bom'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_edge_002": {
+      "natural_language": "Verify all SPDX SBOMs have unique names.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_edge_002": {
+      "natural_language": "Verify all CycloneDX SBOMs have unique serialNumbers.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.serialNumber"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pattern_001": {
+      "natural_language": "Verify all packages in the SPDX SBOM have PURLs containing '@'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pattern_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM have versionInfo not starting with 'v' when it contains numbers.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pattern_003": {
+      "natural_language": "Verify the SPDX SBOM name matches expected image reference pattern.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.name"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_pattern_004": {
+      "natural_language": "Verify all packages in the SPDX SBOM have supplier starting with 'Organization:' or 'Person:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.supplier",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_pattern_005": {
+      "natural_language": "Verify all packages in the SPDX SBOM have originator starting with 'Organization:' or 'Person:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.originator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_pattern_001": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have purl containing '@' when version exists.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl",
+        "comp.version",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_pattern_002": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have cpe containing 'cpe:2.3:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.cpe",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_pattern_003": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have name containing at least one letter.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_count_001": {
+      "natural_language": "Verify the SPDX SBOM has at least 10 packages.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_count_002": {
+      "natural_language": "Verify the SPDX SBOM has at least 5 files.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_count_003": {
+      "natural_language": "Verify all packages in the SPDX SBOM have at least 2 external references.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_count_004": {
+      "natural_language": "Verify all packages in the SPDX SBOM have at least 2 checksums.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_count_005": {
+      "natural_language": "Verify all files in the SPDX SBOM have at least 2 checksums.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_count_001": {
+      "natural_language": "Verify the CycloneDX SBOM has at least 10 components.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_count_002": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have at least one license.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.licenses",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_count_003": {
+      "natural_language": "Verify the CycloneDX SBOM metadata has at least one tool.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_adv_001": {
+      "natural_language": "Verify all packages in the SPDX SBOM with annotations have valid annotation format.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.annotations",
+        "annotation.annotator",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_adv_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM with annotations have annotationDate.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.annotations",
+        "annotation.annotationDate",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_adv_003": {
+      "natural_language": "Verify all packages in the SPDX SBOM with annotations have annotationType.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.annotations",
+        "annotation.annotationType",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_adv_004": {
+      "natural_language": "Verify the SPDX SBOM has relationships.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.relationships"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_adv_005": {
+      "natural_language": "Verify all relationships in the SPDX SBOM have spdxElementId.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.relationships",
+        "rel.spdxElementId"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_adv_006": {
+      "natural_language": "Verify all relationships in the SPDX SBOM have relatedSpdxElement.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.relationships",
+        "rel.relatedSpdxElement"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_adv_007": {
+      "natural_language": "Verify all relationships in the SPDX SBOM have relationshipType.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.relationships",
+        "rel.relationshipType"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_field_001": {
+      "natural_language": "Verify the SPDX SBOM has dataLicense set to 'CC0-1.0'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.dataLicense"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_field_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM have filesAnalyzed set to boolean.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.filesAnalyzed",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_field_003": {
+      "natural_language": "Verify the SPDX SBOM creationInfo has licenseListVersion in format 'X.Y'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.creationInfo.licenseListVersion"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_field_001": {
+      "natural_language": "Verify the CycloneDX SBOM has a version field.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.version"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_field_002": {
+      "natural_language": "Verify the CycloneDX SBOM has a serialNumber.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.serialNumber"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_field_003": {
+      "natural_language": "Verify the CycloneDX SBOM serialNumber starts with 'urn:uuid:'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.serialNumber"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_field_004": {
+      "natural_language": "Verify the CycloneDX SBOM metadata component has a bom-ref.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.component.bom-ref"
+      ],
+      "type": "single_key"
+    },
+    "sbom_spdx_validate_001": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksumValue with valid length for SHA256.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "chk.checksumValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_validate_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM have checksumValue with valid length for SHA1.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.checksums",
+        "chk.algorithm",
+        "chk.checksumValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_validate_003": {
+      "natural_language": "Verify all files in the SPDX SBOM have checksumValue with valid length for SHA256.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.files",
+        "file.checksums",
+        "chk.algorithm",
+        "chk.checksumValue",
+        "file.fileName"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_validate_004": {
+      "natural_language": "Verify all packages in the SPDX SBOM have packageVerificationCodeValue with valid length.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.packageVerificationCode",
+        "pkg.packageVerificationCode.packageVerificationCodeValue",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_validate_001": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have version format matching semver when applicable.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.version",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_001": {
+      "natural_language": "Verify the SPDX SBOM has packages with at least one having filesAnalyzed true.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.filesAnalyzed"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_002": {
+      "natural_language": "Verify all packages in the SPDX SBOM have downloadLocation not equal to empty string.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.downloadLocation",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_003": {
+      "natural_language": "Verify all packages in the SPDX SBOM have copyrightText not equal to empty string.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.copyrightText",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_004": {
+      "natural_language": "Verify the SPDX SBOM has at least one package with supplier containing 'Red Hat'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.supplier"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_005": {
+      "natural_language": "Verify all packages in the SPDX SBOM have versionInfo not equal to empty string.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.versionInfo",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_006": {
+      "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'rpm'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_007": {
+      "natural_language": "Verify the SPDX SBOM has packages with at least one having a PURL containing 'golang'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceType",
+        "ref.referenceLocator"
+      ],
+      "type": "compound"
+    },
+    "sbom_spdx_final_008": {
+      "natural_language": "Verify all packages in the SPDX SBOM have external references with referenceCategory in allowed categories.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.packages",
+        "pkg.externalRefs",
+        "ref.referenceCategory",
+        "pkg.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_001": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have type in allowed component types.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_002": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have externalReferences with type in allowed types.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.externalReferences",
+        "ext_ref.type",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_003": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have a non-empty name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_004": {
+      "natural_language": "Verify the CycloneDX SBOM has components with at least one having type 'library'.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.type"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_005": {
+      "natural_language": "Verify all components in the CycloneDX SBOM have purl starting with 'pkg:' when present.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.components",
+        "comp.purl",
+        "comp.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_006": {
+      "natural_language": "Verify the CycloneDX SBOM metadata component has a type in allowed types.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.component.type"
+      ],
+      "type": "single_key"
+    },
+    "sbom_cyclonedx_final_007": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a non-empty name.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_008": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a non-empty vendor.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.vendor",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_009": {
+      "natural_language": "Verify all tools in the CycloneDX SBOM metadata have a non-empty version.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.metadata.tools",
+        "tool.version",
+        "tool.name"
+      ],
+      "type": "compound"
+    },
+    "sbom_cyclonedx_final_010": {
+      "natural_language": "Verify the CycloneDX SBOM has a specVersion matching '1.' pattern.",
+      "keys_used": [
+        "input.attestations",
+        "statement.predicateType",
+        "statement.predicate.specVersion"
+      ],
+      "type": "single_key"
+    }
+  }
+}

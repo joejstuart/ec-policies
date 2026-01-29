@@ -7,6 +7,7 @@ This script combines:
 2. Test creation training (qwen3-test-creation-training.jsonl)
 3. File editing training (qwen3-file-editing-training.jsonl) - optional
 4. Generic tool usage training (qwen3-generic-tool-usage-training.jsonl) - optional
+5. SBOM training (qwen3-sbom-training-data.jsonl) - optional
 
 Into a single comprehensive training file.
 """
@@ -66,6 +67,12 @@ def main():
         help="Path to generic tool usage training data (relative to project root, optional)"
     )
     parser.add_argument(
+        "--sbom-data",
+        type=str,
+        default=None,
+        help="Path to SBOM training data (relative to project root, optional)"
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="data/qwen3-complete-training.jsonl",
@@ -103,6 +110,7 @@ def main():
     args.test_data = resolve_path(args.test_data)
     args.file_editing_data = resolve_path(args.file_editing_data) if args.file_editing_data else None
     args.generic_tool_data = resolve_path(args.generic_tool_data) if args.generic_tool_data else None
+    args.sbom_data = resolve_path(args.sbom_data) if args.sbom_data else None
     args.output = resolve_path(args.output)
     
     print("=" * 70)
@@ -117,9 +125,9 @@ def main():
     # Load test creation training data (optional - skip if empty string)
     test_examples = []
     if args.test_data:
-    print(f"\n📖 Loading test creation training data...")
+        print(f"\n📖 Loading test creation training data...")
         test_examples = load_jsonl(args.test_data)
-    print(f"   Found {len(test_examples)} test creation examples")
+        print(f"   Found {len(test_examples)} test creation examples")
     
     # Load file editing training data (optional)
     file_editing_examples = []
@@ -149,8 +157,22 @@ def main():
             generic_tool_examples = load_jsonl(default_generic_tool)
             print(f"   Found {len(generic_tool_examples)} generic tool usage examples")
     
+    # Load SBOM training data (optional)
+    sbom_examples = []
+    if args.sbom_data:
+        print(f"\n📖 Loading SBOM training data...")
+        sbom_examples = load_jsonl(args.sbom_data)
+        print(f"   Found {len(sbom_examples)} SBOM training examples")
+    else:
+        # Try default path
+        default_sbom = project_root / "sbom_data/qwen3-sbom-training-data.jsonl"
+        if default_sbom.exists():
+            print(f"\n📖 Loading SBOM training data (from default path)...")
+            sbom_examples = load_jsonl(default_sbom)
+            print(f"   Found {len(sbom_examples)} SBOM training examples")
+    
     # Combine all examples
-    all_examples = rule_examples + test_examples + file_editing_examples + generic_tool_examples
+    all_examples = rule_examples + test_examples + file_editing_examples + generic_tool_examples + sbom_examples
     
     # Shuffle for better training (optional but recommended)
     import random
@@ -171,17 +193,19 @@ def main():
         print(f"   File editing examples: {len(file_editing_examples)}")
     if generic_tool_examples:
         print(f"   Generic tool usage examples: {len(generic_tool_examples)}")
+    if sbom_examples:
+        print(f"   SBOM training examples: {len(sbom_examples)}")
     print(f"   Total examples: {len(all_examples)}")
     print(f"   Output: {args.output}")
     
     # Show breakdown by type
     if test_examples:
-    rule_to_test = sum(1 for ex in test_examples if "create a complete test file" in ex["messages"][1]["content"].lower())
-    requirement_to_rule = len(test_examples) - rule_to_test
-    
-    print(f"\n📊 Test creation breakdown:")
-    print(f"   Rule-to-Test examples: {rule_to_test}")
-    print(f"   Requirement-to-Rule-and-Test examples: {requirement_to_rule}")
+        rule_to_test = sum(1 for ex in test_examples if "create a complete test file" in ex["messages"][1]["content"].lower())
+        requirement_to_rule = len(test_examples) - rule_to_test
+        
+        print(f"\n📊 Test creation breakdown:")
+        print(f"   Rule-to-Test examples: {rule_to_test}")
+        print(f"   Requirement-to-Rule-and-Test examples: {requirement_to_rule}")
     
     return 0
 
