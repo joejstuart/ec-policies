@@ -31,3 +31,23 @@ test_rule_data if {
 test_rule_data_defaults if {
 	assertions.assert_not_empty(rule_data.defaults)
 }
+
+test_anchoring_errors_unanchored if {
+	errors := rule_data.anchoring_errors("test_patterns") with data.rule_data as {"test_patterns": ["unanchored", "^anchored", "^.*ineffective", "^.+also_ineffective"]}
+	assertions.assert_equal(count(errors), 3)
+}
+
+test_anchoring_errors_all_anchored if {
+	errors := rule_data.anchoring_errors("test_patterns") with data.rule_data as {"test_patterns": ["^properly-anchored", "^specific-prefix"]}
+	assertions.assert_empty(errors)
+}
+
+test_anchoring_errors_non_string_skipped if {
+	errors := rule_data.anchoring_errors("test_patterns") with data.rule_data as {"test_patterns": [1, true, "^valid"]}
+	assertions.assert_empty(errors)
+}
+
+test_anchoring_errors_empty_key if {
+	errors := rule_data.anchoring_errors("nonexistent_key")
+	assertions.assert_empty(errors)
+}
