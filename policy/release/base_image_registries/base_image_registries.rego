@@ -116,7 +116,7 @@ _image_ref_permitted(image_ref) if {
 	object.get(info, "success", false) == true
 }
 
-_signing_identity := rule_data.get(_signing_identities_key)[_signing_identity_name]
+_signing_identity := sigstore.named_identity(_signing_identity_name)
 
 _cyclonedx_base_images := [_cyclonedx_image_ref(component) |
 	some s in sbom.cyclonedx_sboms
@@ -210,53 +210,15 @@ _rule_data_errors contains error if {
 	}
 }
 
+# Validate the signing_identities rule data for the rh-release identity via the
+# shared sigstore helper. rh-release is expected to be present, so this includes
+# the "missing expected key" warning (map shape, entry shape, verification
+# config, and presence).
 _rule_data_errors contains error if {
-	val := rule_data.get(_signing_identities_key)
-	val != []
-	not is_object(val)
-	msg := sprintf(
-		"Rule data %s has unexpected format: expected an object, got %s",
-		[_signing_identities_key, type_name(val)],
-	)
-	error := {"message": msg, "severity": "failure"}
-}
-
-_rule_data_errors contains error if {
-	identities := rule_data.get(_signing_identities_key)
-	is_object(identities)
-	val := object.get(identities, _signing_identity_name, {})
-	val != {}
-	not is_object(val)
-	msg := sprintf(
-		"Rule data %s.%s has unexpected format: expected an object, got %s",
-		[_signing_identities_key, _signing_identity_name, type_name(val)],
-	)
-	error := {"message": msg, "severity": "failure"}
-}
-
-_rule_data_errors contains error if {
-	some e in sigstore.validate(_signing_identity)
-	error := {
-		"message": sprintf("Rule data %s.%s %s", [_signing_identities_key, _signing_identity_name, e.message]),
-		"severity": e.severity,
-	}
-}
-
-_rule_data_errors contains error if {
-	identities := rule_data.get(_signing_identities_key)
-	is_object(identities)
-	count(identities) > 0
-	not _signing_identity_name in object.keys(identities)
-	msg := sprintf(
-		"Rule data %s does not contain the expected key %q",
-		[_signing_identities_key, _signing_identity_name],
-	)
-	error := {"message": msg, "severity": "warning"}
+	some error in sigstore.identity_rule_data_errors(_signing_identity_name)
 }
 
 _rule_data_key := "allowed_registry_prefixes"
-
-_signing_identities_key := "signing_identities"
 
 _signing_identity_name := "rh-release"
 

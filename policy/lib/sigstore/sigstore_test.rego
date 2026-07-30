@@ -203,3 +203,74 @@ test_validate_valid_keyless_mixed if {
 		[],
 	)
 }
+
+# --- Tests for the shared signing_identities helpers ---
+
+test_named_identity_returns_entry if {
+	d := {"signing_identities": {"rh-release": {"public_key": "key", "ignore_rekor": true}}}
+	assertions.assert_equal(
+		sigstore.named_identity("rh-release"),
+		{"public_key": "key", "ignore_rekor": true},
+	) with data.rule_data as d
+}
+
+test_named_identity_absent if {
+	not sigstore.named_identity("rh-release") with data.rule_data as {}
+}
+
+test_identity_rule_data_errors_valid if {
+	d := {"signing_identities": {"sbom": {"public_key": "key", "ignore_rekor": true}}}
+	assertions.assert_empty(sigstore.identity_rule_data_errors("sbom")) with data.rule_data as d
+}
+
+test_identity_rule_data_errors_absent if {
+	assertions.assert_empty(sigstore.identity_rule_data_errors("sbom")) with data.rule_data as {}
+}
+
+test_identity_rule_data_errors_top_level_not_object if {
+	errors := sigstore.identity_rule_data_errors("sbom") with data.rule_data as {"signing_identities": 42}
+	msgs := {e.message | some e in errors}
+	"Rule data signing_identities has unexpected format: expected an object, got number" in msgs
+}
+
+test_identity_rule_data_errors_entry_not_object if {
+	d := {"signing_identities": {"sbom": "not-an-object"}}
+	errors := sigstore.identity_rule_data_errors("sbom") with data.rule_data as d
+	msgs := {e.message | some e in errors}
+	"Rule data signing_identities.sbom has unexpected format: expected an object, got string" in msgs
+}
+
+test_identity_rule_data_errors_invalid_config if {
+	d := {"signing_identities": {"sbom": {"public_key": "key"}}}
+	errors := sigstore.identity_rule_data_errors("sbom") with data.rule_data as d
+	msgs := {e.message | some e in errors}
+
+	# regal ignore:line-length
+	"Rule data signing_identities.sbom requires rekor_url, rekor_public_key, or ignore_rekor when using public_key verification" in msgs
+}
+
+# The default helper warns when a configured, non-empty map omits the key.
+test_identity_rule_data_errors_missing_key_warns if {
+	d := {"signing_identities": {"other": {"public_key": "key", "ignore_rekor": true}}}
+	errors := sigstore.identity_rule_data_errors("sbom") with data.rule_data as d
+	assertions.assert_equal(errors, {{
+		"message": "Rule data signing_identities does not contain the expected key \"sbom\"",
+		"severity": "warning",
+	}}) with data.rule_data as d
+}
+
+# The optional helper stays silent when the identity is absent from the map.
+test_optional_identity_rule_data_errors_missing_key_silent if {
+	d := {"signing_identities": {"other": {"public_key": "key", "ignore_rekor": true}}}
+	assertions.assert_empty(sigstore.optional_identity_rule_data_errors("sbom")) with data.rule_data as d
+}
+
+# The optional helper still validates a present but malformed entry.
+test_optional_identity_rule_data_errors_validates_present if {
+	d := {"signing_identities": {"sbom": {"public_key": "key"}}}
+	errors := sigstore.optional_identity_rule_data_errors("sbom") with data.rule_data as d
+	msgs := {e.message | some e in errors}
+
+	# regal ignore:line-length
+	"Rule data signing_identities.sbom requires rekor_url, rekor_public_key, or ignore_rekor when using public_key verification" in msgs
+}

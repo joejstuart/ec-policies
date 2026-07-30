@@ -519,6 +519,58 @@ test_no_anchoring_warnings_when_anchored if {
 		with data.rule_data as d
 }
 
+test_sbom_signature_verification_warn if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	expected := {{
+		"code": "sbom.signature_verification",
+		# regal ignore:line-length
+		"msg": "SBOM referrer signature verification failed for registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4: verification failed",
+	}}
+	assertions.assert_equal_results(expected, sbom.warn) with input.attestations as []
+		with input.image.ref as "registry.io/repo/img@sha256:abc123"
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": {"public_key": "test-key", "ignore_rekor": true}}}
+}
+
+test_sbom_signature_verification_no_warn_on_success if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	assertions.assert_empty(sbom.warn) with input.attestations as []
+		with input.image.ref as "registry.io/repo/img@sha256:abc123"
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": {"public_key": "test-key", "ignore_rekor": true}}}
+}
+
+test_sbom_signature_verification_no_warn_without_identity if {
+	assertions.assert_empty(sbom.warn) with input.attestations as []
+		with input.image.ref as "registry.io/repo/img@sha256:abc123"
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+}
+
+_mock_verify_image_success(_, _) := {"errors": []}
+
+_mock_verify_image_failure(_, _) := {"errors": ["verification failed"]}
+
 _sbom_attestation := [_spdx_sbom_attestation, _cyclonedx_sbom_attestation]
 
 _spdx_sbom_attestation := {"statement": {

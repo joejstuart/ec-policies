@@ -55,4 +55,26 @@ deny contains result if {
 	result := metadata.result_helper_with_severity(rego.metadata.chain(), [error.message], error.severity)
 }
 
+# METADATA
+# title: SBOM signature verification failed
+# description: >-
+#   Report when signature verification fails for SBOMs discovered via OCI
+#   referrers or image-tag refs. The SBOM is excluded (fail-closed), but
+#   the user should know why.
+# custom:
+#   short_name: signature_verification
+#   failure_msg: "%s"
+#   solution: >-
+#     Check that the SBOM was signed with the key or certificate configured
+#     in the "sbom" entry of the signing_identities rule data, or that the
+#     signing identity matches.
+#   collections:
+#   - redhat
+#   - redhat_security
+#
+warn contains result if {
+	some error in lib.sbom.signature_verification_errors
+	result := metadata.result_helper(rego.metadata.chain(), [error])
+}
+
 _sboms := array.concat(lib.sbom.spdx_sboms, lib.sbom.cyclonedx_sboms)

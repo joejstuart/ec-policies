@@ -82,3 +82,179 @@ _mock_blob_multi("registry.io/repo/img@sha256:first") := "first blob"
 _mock_json_blob(_) := `{"key": "value"}`
 
 _mock_invalid_blob(_) := "not valid json {"
+
+# --- Tests for verified_image_referrers ---
+
+test_verified_image_referrers_success if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	result := oci.verified_image_referrers(ref, identity) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(result) == 1
+}
+
+test_verified_image_referrers_verification_fails if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	result := oci.verified_image_referrers(ref, identity) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 0
+}
+
+test_verified_image_referrers_invalid_identity if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+
+	# An identity that is not a usable verification config causes fail-closed:
+	# no referrers returned even though the verify_image mock would succeed.
+	# Empty object (fails sigstore.validate) and non-object both fail-closed.
+	empty_result := oci.verified_image_referrers(ref, {}) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(empty_result) == 0
+
+	non_object_result := oci.verified_image_referrers(ref, "not-an-object") with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(non_object_result) == 0
+}
+
+# --- Tests for verified_image_tag_refs ---
+
+test_verified_image_tag_refs_success if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.verified_image_tag_refs(ref, identity) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(result) == 1
+}
+
+test_verified_image_tag_refs_verification_fails if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.verified_image_tag_refs(ref, identity) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 0
+}
+
+test_verified_image_tag_refs_invalid_identity if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.verified_image_tag_refs(ref, {}) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(result) == 0
+}
+
+# --- Tests for image_referrer_failures ---
+
+test_image_referrer_failures_on_error if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	result := oci.image_referrer_failures(ref, identity) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 1
+	some failure in result
+	failure.errors == ["verification failed"]
+}
+
+test_image_referrer_failures_empty_on_success if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	result := oci.image_referrer_failures(ref, identity) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(result) == 0
+}
+
+test_image_referrer_failures_empty_invalid_identity if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repo/img@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	result := oci.image_referrer_failures(ref, {}) with ec.oci.image_referrers as mock_referrers
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 0
+}
+
+# --- Tests for image_tag_ref_failures ---
+
+test_image_tag_ref_failures_on_error if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.image_tag_ref_failures(ref, identity) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 1
+	some failure in result
+	failure.errors == ["verification failed"]
+}
+
+test_image_tag_ref_failures_empty_on_success if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	identity := {"public_key": "my-signing-key", "ignore_rekor": true}
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.image_tag_ref_failures(ref, identity) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_success
+	count(result) == 0
+}
+
+test_image_tag_ref_failures_empty_invalid_identity if {
+	ref := "registry.io/repo/img@sha256:abc123"
+	mock_tag_refs := ["registry.io/repo/img:sha256-abc123.sbom"]
+	result := oci.image_tag_ref_failures(ref, {}) with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+	count(result) == 0
+}
+
+_mock_verify_image_success(_, _) := {"errors": []}
+
+_mock_verify_image_failure(_, _) := {"errors": ["verification failed"]}

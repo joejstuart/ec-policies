@@ -31,3 +31,15 @@ Confirm an SBOM attestation exists.
 * FAILURE message: `No SBOM attestations found`
 * Code: `sbom.found`
 * https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/sbom/sbom.rego#L16[Source, window="_blank"]
+
+[#sbom__signature_verification]
+=== link:#sbom__signature_verification[SBOM signature verification failed]
+
+Report when signature verification fails for SBOMs discovered via OCI referrers or image-tag refs. The SBOM is excluded (fail-closed), but the user should know why.
+
+*Solution*: Check that the SBOM was signed with the key or certificate configured in the "sbom" entry of the signing_identities rule data, or that the signing identity matches.
+
+* Rule type: [rule-type-indicator warning]#WARNING#
+* WARNING message: `%s`
+* Code: `sbom.signature_verification`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/sbom/sbom.rego#L58[Source, window="_blank"]
