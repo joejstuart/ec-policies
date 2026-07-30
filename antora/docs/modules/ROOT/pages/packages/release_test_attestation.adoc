@@ -18,7 +18,7 @@ Produce a warning when a test attestation that will be required in the future is
 * Rule type: [rule-type-indicator warning]#WARNING#
 * WARNING message: `%s is missing and will be required on %s`
 * Code: `test_attestation.future_required_test_attestations_found`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L334[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L148[Source, window="_blank"]
 
 [#test_attestation__no_erred_test_attestations]
 === link:#test_attestation__no_erred_test_attestations[No erred test attestations]
@@ -30,11 +30,7 @@ Produce a violation if any test result attestation has an erred result. The resu
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q has an erred result`
 * Code: `test_attestation.no_erred_test_attestations`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L236[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L212[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L264[Source, window="_blank"]
 
 [#test_attestation__no_failed_informative_test_attestations]
 === link:#test_attestation__no_failed_informative_test_attestations[No failed informative test attestations]
@@ -46,11 +42,7 @@ Produce a warning if any informative test attestation has a failed result. Infor
 * Rule type: [rule-type-indicator warning]#WARNING#
 * WARNING message: `Informative test attestation %q has a failed result, failures: %s`
 * Code: `test_attestation.no_failed_informative_test_attestations`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L88[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L64[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L89[Source, window="_blank"]
 
 [#test_attestation__no_failed_tests]
 === link:#test_attestation__no_failed_tests[No failed test attestations]
@@ -62,11 +54,7 @@ Produce a violation if any non-informative test result attestation has a failed 
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q has a failed result, failures: %s`
 * Code: `test_attestation.no_failed_tests`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L147[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L123[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L175[Source, window="_blank"]
 
 [#test_attestation__no_skipped_test_attestations]
 === link:#test_attestation__no_skipped_test_attestations[No skipped test attestations]
@@ -78,11 +66,7 @@ Produce a violation if any test result attestation has a skipped result. A skipp
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q has a skipped result`
 * Code: `test_attestation.no_skipped_test_attestations`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L266[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L241[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L294[Source, window="_blank"]
 
 [#test_attestation__no_test_warnings]
 === link:#test_attestation__no_test_warnings[No test attestation warnings]
@@ -94,11 +78,7 @@ Produce a warning if any test result attestation has a warned result. Warned tes
 * Rule type: [rule-type-indicator warning]#WARNING#
 * WARNING message: `Test attestation %q has warnings, warnings: %s`
 * Code: `test_attestation.no_test_warnings`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L119[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L95[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L120[Source, window="_blank"]
 
 [#test_attestation__test_result_known]
 === link:#test_attestation__test_result_known[No unsupported test attestation result values]
@@ -110,10 +90,7 @@ Ensure the result field of each test result attestation is a recognized value. V
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q has an unsupported result value %q`
 * Code: `test_attestation.test_result_known`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L179[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L155[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L207[Source, window="_blank"]
 
 [#test_attestation__required_test_attestations_list_provided]
 === link:#test_attestation__required_test_attestations_list_provided[Required test attestations list was provided]
@@ -125,7 +102,7 @@ Confirm that when the "required-test-attestations" rule data key is provided, it
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Missing required required-test-attestations data`
 * Code: `test_attestation.required_test_attestations_list_provided`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L361[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L388[Source, window="_blank"]
 
 [#test_attestation__required_test_attestations_found]
 === link:#test_attestation__required_test_attestations_found[Required test attestations were found]
@@ -137,8 +114,7 @@ Produce a violation if a required test attestation is missing. Required test att
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Required test attestation %q is missing`
 * Code: `test_attestation.required_test_attestations_found`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L303[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L358[Source, window="_blank"]
 
 [#test_attestation__rule_data_provided]
 === link:#test_attestation__rule_data_provided[Rule data provided]
@@ -150,11 +126,7 @@ Confirm the expected rule data keys have been provided in the expected format. T
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `%s`
 * Code: `test_attestation.rule_data_provided`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L330[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L388[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L414[Source, window="_blank"]
 
 [#test_attestation__test_data_found]
 === link:#test_attestation__test_data_found[Test attestation data includes result]
@@ -166,11 +138,7 @@ Each test result attestation must include a result field in its predicate. Verif
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q is missing the required result field`
 * Code: `test_attestation.test_data_found`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L209[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L185[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L237[Source, window="_blank"]
 
 [#test_attestation__subject_mismatch]
 === link:#test_attestation__subject_mismatch[Test attestation subject matches image]
@@ -182,8 +150,4 @@ Verify that each test-result attestation's subject includes the digest of the im
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Test attestation %q subject does not match image digest %q`
 * Code: `test_attestation.subject_mismatch`
-<<<<<<< HEAD
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L298[Source, window="_blank"]
-=======
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L272[Source, window="_blank"]
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/test_attestation/test_attestation.rego#L326[Source, window="_blank"]

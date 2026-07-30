@@ -368,8 +368,8 @@ Rules included:
 * xref:packages/release_git_branch.adoc#git_branch__git_branch[Git branch checks: Builds have a trusted target branch]        
 * xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_extensions[GitHub Certificate Checks: GitHub Workflow Certificate Extensions]        
 * xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_name[GitHub Certificate Checks: GitHub Workflow Name]        
-* xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_ref[GitHub Certificate Checks: GitHub Workflow Repository]        
 * xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_repository[GitHub Certificate Checks: GitHub Workflow Repository]        
+* xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_ref[GitHub Certificate Checks: GitHub Workflow Repository]        
 * xref:packages/release_github_certificate.adoc#github_certificate__gh_workflow_trigger[GitHub Certificate Checks: GitHub Workflow Trigger]        
 * xref:packages/release_github_certificate.adoc#github_certificate__rule_data_provided[GitHub Certificate Checks: Rule data provided]        
 * xref:packages/release_hermetic_task.adoc#hermetic_task__hermetic[Hermetic task: Task called with hermetic param set]        
@@ -475,12 +475,9 @@ Rules included:
 * xref:packages/release_test_attestation.adoc#test_attestation__no_failed_tests[Test attestation: No failed test attestations]        
 * xref:packages/release_test_attestation.adoc#test_attestation__no_skipped_test_attestations[Test attestation: No skipped test attestations]        
 * xref:packages/release_test_attestation.adoc#test_attestation__test_result_known[Test attestation: No unsupported test attestation result values]        
-<<<<<<< HEAD
-* xref:packages/release_test_attestation.adoc#test_attestation__rule_data_provided[Test attestation: Rule data provided]        
-=======
 * xref:packages/release_test_attestation.adoc#test_attestation__required_test_attestations_list_provided[Test attestation: Required test attestations list was provided]        
 * xref:packages/release_test_attestation.adoc#test_attestation__required_test_attestations_found[Test attestation: Required test attestations were found]        
->>>>>>> d728484f (Add required-test-attestations rule data to test_attestation package)
+* xref:packages/release_test_attestation.adoc#test_attestation__rule_data_provided[Test attestation: Rule data provided]        
 * xref:packages/release_test_attestation.adoc#test_attestation__test_data_found[Test attestation: Test attestation data includes result]        
 * xref:packages/release_test_attestation.adoc#test_attestation__subject_mismatch[Test attestation: Test attestation subject matches image]        
 * xref:packages/release_test.adoc#test__test_all_images[Test: Image digest is present in IMAGES_PROCESSED result]        

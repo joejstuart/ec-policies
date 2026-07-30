@@ -146,6 +146,33 @@ warn contains result if {
 }
 
 # METADATA
+# title: Future required test attestations were found
+# description: >-
+#   Produce a warning when a test attestation that will be required in the
+#   future is not currently present. This allows teams to prepare for
+#   upcoming requirements without blocking current releases.
+# custom:
+#   short_name: future_required_test_attestations_found
+#   failure_msg: '%s is missing and will be required on %s'
+#   solution: >-
+#     A test attestation that will be required at a future date is missing.
+#     Ensure the test is included before the effective date.
+#   collections:
+#   - redhat
+#   depends_on:
+#   - attestation_type.known_attestation_type
+#
+warn contains result if {
+	some missing_test in _missing_required_tests(_latest_required_tests)
+	not missing_test in _current_required_tests
+	result := metadata.result_helper_with_term(
+		rego.metadata.chain(),
+		[sprintf("Test attestation %q", [missing_test]), _latest_effective_on],
+		missing_test,
+	)
+}
+
+# METADATA
 # title: No failed test attestations
 # description: >-
 #   Produce a violation if any non-informative test result attestation has
@@ -351,37 +378,9 @@ deny contains result if {
 #
 deny contains result if {
 	some missing_test in _missing_required_tests(_current_required_tests)
-	missing_test in _latest_required_tests
 	result := metadata.result_helper_with_term(
 		rego.metadata.chain(),
 		[missing_test],
-		missing_test,
-	)
-}
-
-# METADATA
-# title: Future required test attestations were found
-# description: >-
-#   Produce a warning when a test attestation that will be required in the
-#   future is not currently present. This allows teams to prepare for
-#   upcoming requirements without blocking current releases.
-# custom:
-#   short_name: future_required_test_attestations_found
-#   failure_msg: '%s is missing and will be required on %s'
-#   solution: >-
-#     A test attestation that will be required at a future date is missing.
-#     Ensure the test is included before the effective date.
-#   collections:
-#   - redhat
-#   depends_on:
-#   - attestation_type.known_attestation_type
-#
-warn contains result if {
-	some missing_test in _missing_required_tests(_latest_required_tests)
-	not missing_test in _current_required_tests
-	result := metadata.result_helper_with_term(
-		rego.metadata.chain(),
-		[sprintf("Test attestation %q", [missing_test]), _latest_effective_on],
 		missing_test,
 	)
 }
@@ -520,11 +519,13 @@ _latest_required_tests := entry.tests if {
 	entry := ectime.newest(_required_test_attestations_data)
 }
 
+default _latest_effective_on := ""
+
 _latest_effective_on := entry.effective_on if {
 	entry := ectime.newest(_required_test_attestations_data)
-} else := ""
+}
 
-_present_test_names := {name |
+_present_test_names contains name if {
 	some statement in _test_attestations
 	name := _test_name(statement)
 }
