@@ -47,9 +47,9 @@ Every policy rule requires METADATA annotations. Missing or malformed annotation
 
 ## Architecture (design rationale and non-obvious parts)
 
-**Collections** (`policy/*/collection/`) group related rules. Each collection imports specific policy
-packages. Examples: `minimal` (basic validation), `slsa3` (SLSA Level 3), `redhat` (Red Hat-specific).
-When adding a new rule, you must add it to the appropriate collection(s) or it won't be evaluated.
+**Collections** (`policy/*/collection/`) group related rules. Examples: `minimal` (basic validation),
+`slsa3` (SLSA Level 3), `redhat` (Red Hat-specific). New rules declare membership via the
+`collections:` key in their METADATA annotation — see existing rules in `policy/release/` for the pattern.
 
 **SLSA dual-format:** The library in `policy/lib/tekton/` normalizes both SLSA v0.2 and v1.0
 attestation formats. Policies consume the normalized form — don't branch on SLSA version in rules.
@@ -74,8 +74,9 @@ These files have `effective_on` dates — rules with future dates are warnings, 
   rule and verify it includes `effective_on: <future RFC 3339 date>`. See existing rules in
   `policy/release/` for the pattern. Rule data entries in `example/data/` YAML files (e.g.,
   `required_tasks.yml`, `trusted_tekton_tasks.yml`) also use `effective_on` for data-driven rules.
-- **Collection membership:** New rules must be added to the appropriate collection(s) in
-  `policy/*/collection/` or they won't be evaluated.
+- **Collection membership:** New rules must declare membership in the appropriate collection(s) via
+  the `collections:` key in their METADATA annotation. See existing rules in `policy/release/` for
+  the pattern.
 - **Test coverage:** Every new rule needs tests in a corresponding `_test.rego` file. CI enforces
   100% coverage.
 
