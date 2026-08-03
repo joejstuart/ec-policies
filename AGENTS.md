@@ -57,6 +57,22 @@ attestation formats. Policies consume the normalized form — don't branch on SL
 **Rule data** lives in `example/data/` (required tasks, trusted task bundles, known RPM repos).
 These files have `effective_on` dates — rules with future dates are warnings, not failures.
 
+## Rego Evaluation Model (for AI reviewers)
+
+Rego is a declarative policy language (Datalog-inspired), not imperative code:
+- Multiple rule bodies with the same name are **disjunctions** (OR). Conditions within a body are
+  **conjunctions** (AND).
+- Rules can define partial sets (`deny contains ...`), complete values (`allowed := true`), or
+  functions (`f(x) := y`). `default` and `else` provide declarative fallback selection — not
+  imperative control flow.
+- Focused tests of individual clauses are preferred. Integration tests through higher-level rules
+  (e.g., testing `deny`/`warn` output) are appropriate when composition affects behavior — bindings,
+  aggregation, fallback selection, or final violation output.
+- Prefer `some x in collection` over explicit iteration, `object.get(obj, key, default)` over
+  key-existence checks, and `x in {a, b}` over chained equality.
+- Do NOT suggest imperative patterns that Rego does not provide: early returns, try/catch, or
+  exception handling. These concepts do not exist in Rego.
+
 ## Common Change Patterns
 
 - **Add a release policy rule:** follow the pattern in `policy/release/attestation_type/attestation_type.rego` (rule + `_test.rego` in a subdirectory, declare `collections:` in METADATA)
