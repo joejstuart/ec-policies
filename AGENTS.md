@@ -72,7 +72,8 @@ These files have `effective_on` dates — rules with future dates are warnings, 
   Rules without `effective_on` enforce immediately on deployment, which can break existing builds
   without warning. Look for the annotation block above each new `deny contains` or `warn contains`
   rule and verify it includes `effective_on: <future RFC 3339 date>`. See existing rules in
-  `policy/release/` for the pattern.
+  `policy/release/` for the pattern. Rule data entries in `example/data/` YAML files (e.g.,
+  `required_tasks.yml`, `trusted_tekton_tasks.yml`) also use `effective_on` for data-driven rules.
 - **Collection membership:** New rules must be added to the appropriate collection(s) in
   `policy/*/collection/` or they won't be evaluated.
 - **Test coverage:** Every new rule needs tests in a corresponding `_test.rego` file. CI enforces
