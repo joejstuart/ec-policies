@@ -27,6 +27,8 @@ import data.lib.k8s
 #   failure_msg: Step %d uses disallowed image ref '%s'
 #   solution: >-
 #     Make sure the container image used in each step of the Task comes from an approved registry.
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some task in tkn_bundle.tasks
@@ -56,6 +58,8 @@ deny contains result if {
 #     Make sure the xref:cli:ROOT:configuration.adoc#_data_sources[data sources] contains a key
 #     'allowed_step_image_registry_prefixes' that contains a list of approved registries
 #     that can be used to run tasks in the build pipeline.
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some e in _rule_data_errors

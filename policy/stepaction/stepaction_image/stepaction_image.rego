@@ -48,6 +48,8 @@ deny contains result if {
 #   failure_msg: Image ref %q is disallowed
 #   solution: >-
 #     Make sure the container image used comes from an approved registry.
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	image_ref := input.spec.image
@@ -71,6 +73,8 @@ deny contains result if {
 #   solution: >-
 #     Make sure the xref:cli:ROOT:configuration.adoc#_data_sources[data sources] contains a key
 #     'allowed_step_image_registry_prefixes' that contains a list of approved registries.
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some e in _rule_data_errors

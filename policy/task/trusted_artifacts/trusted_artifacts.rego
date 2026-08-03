@@ -20,6 +20,8 @@ import data.lib.k8s
 # custom:
 #   short_name: parameter
 #   failure_msg: The parameter %q of the Task %q does not use the _ARTIFACT suffix
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some param_name in _ta_parameters
@@ -33,6 +35,8 @@ deny contains result if {
 # custom:
 #   short_name: result
 #   failure_msg: The result %q of the Task %q does not use the _ARTIFACT suffix
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some result_name in _ta_results
@@ -52,6 +56,8 @@ deny contains result if {
 #   short_name: workspace
 #   failure_msg: General purpose workspace %q is not allowed
 #   effective_on: 2024-07-07T00:00:00Z
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	_uses_trusted_artifacts(input)

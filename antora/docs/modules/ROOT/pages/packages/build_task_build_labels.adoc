@@ -26,4 +26,4 @@ Confirm that the build task definition includes at least one label.
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `The task definition does not include any labels`
 * Code: `build_labels.build_task_has_label`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L31[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L33[Source, window="_blank"]

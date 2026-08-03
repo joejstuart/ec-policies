@@ -22,6 +22,8 @@ build_label := "build.appstudio.redhat.com/build_type"
 # custom:
 #   short_name: build_type_label_set
 #   failure_msg: The required build label '%s' is missing
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	not build_label in object.keys(tekton.task_labels(input))
@@ -35,6 +37,8 @@ deny contains result if {
 # custom:
 #   short_name: build_task_has_label
 #   failure_msg: The task definition does not include any labels
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	not tekton.task_labels(input)

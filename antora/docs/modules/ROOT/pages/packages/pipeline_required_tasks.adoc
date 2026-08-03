@@ -26,7 +26,7 @@ Ensure that the set of required tasks is included in the Pipeline definition.
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `%s is missing or outdated`
 * Code: `required_tasks.missing_required_task`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/required_tasks/required_tasks.rego#L100[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/required_tasks/required_tasks.rego#L102[Source, window="_blank"]
 
 [#required_tasks__tasks_found]
 === link:#required_tasks__tasks_found[Pipeline contains tasks]
@@ -46,7 +46,7 @@ Confirm the `required-tasks` rule data was provided, since it's required by the 
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `The required tasks list is missing from the rule data`
 * Code: `required_tasks.required_tasks_list_present`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/required_tasks/required_tasks.rego#L122[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/required_tasks/required_tasks.rego#L126[Source, window="_blank"]
 
 [#required_tasks__required_tasks_found]
 === link:#required_tasks__required_tasks_found[Required tasks found in pipeline definition]
