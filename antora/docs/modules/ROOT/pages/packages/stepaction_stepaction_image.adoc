@@ -42,4 +42,4 @@ Confirm the `allowed_step_image_registry_prefixes` rule data is provided.
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `%s`
 * Code: `stepaction_image.rule_data`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/stepaction/stepaction_image/stepaction_image.rego#L64[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/stepaction/stepaction_image/stepaction_image.rego#L66[Source, window="_blank"]

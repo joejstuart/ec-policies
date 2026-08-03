@@ -91,6 +91,8 @@ warn contains result if {
 # custom:
 #   short_name: tasks_found
 #   failure_msg: No tasks found in pipeline
+#   collections:
+#   - redhat_security
 deny contains result if {
 	input.kind == "Pipeline"
 	count(tekton.tasks(input)) == 0
@@ -105,6 +107,8 @@ deny contains result if {
 # custom:
 #   short_name: missing_required_task
 #   failure_msg: '%s is missing or outdated'
+#   collections:
+#   - redhat_security
 deny contains result if {
 	count(tekton.tasks(input)) > 0
 
@@ -127,6 +131,8 @@ deny contains result if {
 # custom:
 #   short_name: required_tasks_list_present
 #   failure_msg: The required tasks list is missing from the rule data
+#   collections:
+#   - redhat_security
 deny contains result if {
 	tekton.missing_required_tasks_data
 	not tekton.required_task_list(input)

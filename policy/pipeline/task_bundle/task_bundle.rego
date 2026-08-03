@@ -51,6 +51,8 @@ _manifests := ec.oci.image_manifests(_all_bundle_refs) if {
 # custom:
 #   short_name: unpinned_task_bundle
 #   failure_msg: Pipeline task '%s' uses an unpinned task bundle reference '%s'
+#   collections:
+#   - redhat_security
 #
 warn contains result if {
 	some task in tekton.unpinned_task_bundle(input.spec.tasks)
@@ -67,6 +69,8 @@ warn contains result if {
 #   failure_msg: >-
 #     Pipeline task '%s' uses an out of date task bundle '%s', new version of the
 #     Task must be used before %s
+#   collections:
+#   - redhat_security
 #
 warn contains result if {
 	# only run if trusted_task_rules are empty
@@ -87,6 +91,8 @@ warn contains result if {
 # custom:
 #   short_name: disallowed_task_reference
 #   failure_msg: Pipeline task '%s' does not contain a bundle reference
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some task in tekton.disallowed_task_reference(input.spec.tasks)
@@ -100,6 +106,8 @@ deny contains result if {
 # custom:
 #   short_name: empty_task_bundle_reference
 #   failure_msg: Pipeline task '%s' uses an empty bundle image reference
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some task in tekton.empty_task_bundle_reference(input.spec.tasks)
@@ -113,6 +121,8 @@ deny contains result if {
 # custom:
 #   short_name: untrusted_task_bundle
 #   failure_msg: Pipeline task '%s' uses an untrusted task bundle '%s'
+#   collections:
+#   - redhat_security
 #
 deny contains result if {
 	some task in tekton.untrusted_task_refs(input.spec.tasks, _manifests)
@@ -129,6 +139,8 @@ deny contains result if {
 # custom:
 #   short_name: missing_required_data
 #   failure_msg: Missing required trusted_tasks data
+#   collections:
+#   - redhat_security
 deny contains result if {
 	tekton.missing_all_trusted_tasks_data
 	result := metadata.result_helper(rego.metadata.chain(), [])
