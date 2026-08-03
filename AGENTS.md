@@ -65,6 +65,19 @@ These files have `effective_on` dates — rules with future dates are warnings, 
 - **Fetch and parse an OCI blob:** use `oci.parsed_blob(ref)` from `data.lib.oci`, not `json.unmarshal(ec.oci.blob(ref))` directly. A Regal lint rule (`prefer-parsed-blob`) enforces this
 - **Add a new collection:** follow the pattern in `policy/release/collection/` — import specific policy packages
 
+## Review Checklist for New Policy Rules
+
+- **`effective_on` date required:** New deny/warn rules MUST include an `effective_on` date in their
+  METADATA annotation (under `custom:`) to provide a migration window before enforcement begins.
+  Rules without `effective_on` enforce immediately on deployment, which can break existing builds
+  without warning. Look for the annotation block above each new `deny contains` or `warn contains`
+  rule and verify it includes `effective_on: <future RFC 3339 date>`. See existing rules in
+  `policy/release/` for the pattern.
+- **Collection membership:** New rules must be added to the appropriate collection(s) in
+  `policy/*/collection/` or they won't be evaluated.
+- **Test coverage:** Every new rule needs tests in a corresponding `_test.rego` file. CI enforces
+  100% coverage.
+
 ## PR Conventions
 
 Conventional commits are encouraged. Run `make ci` before pushing. CI runs on every PR via
