@@ -121,32 +121,33 @@ test_disallowed_base_images if {
 	expected := {
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.yo/ubi7/3@sha256:6123\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.yo/ubi7/3@sha256:6123\" is not permitted",
 			"term": "registry.redhat.yo/ubi7/3",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.ioo/spam/3@sha256:6123\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.ioo/spam/3@sha256:6123\" is not permitted",
 			"term": "registry.redhat.ioo/spam/3",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"dockery.io/busybox/3@sha256:6123\" is from a disallowed registry",
+			"msg": "Base image \"dockery.io/busybox/3@sha256:6123\" is not permitted",
 			"term": "dockery.io/busybox/3",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.blah/ubi7/3@sha256:123\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.blah/ubi7/3@sha256:123\" is not permitted",
 			"term": "registry.redhat.blah/ubi7/3",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.whatever/ubi7/3@sha256:456\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.whatever/ubi7/3@sha256:456\" is not permitted",
 			"term": "registry.redhat.whatever/ubi7/3",
 		},
 	}
 	assertions.assert_equal_results(base_image_registries.deny, expected) with lib.sbom.cyclonedx_sboms as sboms
 		with lib.sbom.spdx_sboms as bad_spdx_sbom
+		with ec.sigstore.verify_image as {"success": false, "errors": []}
 }
 
 test_disallowed_base_images_with_snapshot if {
@@ -190,22 +191,22 @@ test_disallowed_base_images_with_snapshot if {
 	expected := {
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"docker.io/library/registry@sha256:bcd\" is from a disallowed registry",
+			"msg": "Base image \"docker.io/library/registry@sha256:bcd\" is not permitted",
 			"term": "docker.io/library/registry",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.io/ubi7@sha256:abc\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.io/ubi7@sha256:abc\" is not permitted",
 			"term": "registry.redhat.io/ubi7",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.blah/ubi7/3@sha256:ccc\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.blah/ubi7/3@sha256:ccc\" is not permitted",
 			"term": "registry.redhat.blah/ubi7/3",
 		},
 		{
 			"code": "base_image_registries.base_image_permitted",
-			"msg": "Base image \"registry.redhat.whatever/ubi7/3@sha256:ddd\" is from a disallowed registry",
+			"msg": "Base image \"registry.redhat.whatever/ubi7/3@sha256:ddd\" is not permitted",
 			"term": "registry.redhat.whatever/ubi7/3",
 		},
 	}
@@ -214,6 +215,7 @@ test_disallowed_base_images_with_snapshot if {
 		with lib.sbom.spdx_sboms as bad_spdx_sbom
 		with data.rule_data.allowed_registry_prefixes as ["another.registry.io"]
 		with input.snapshot as snapshot
+		with ec.sigstore.verify_image as {"success": false, "errors": []}
 }
 
 test_sbom_base_image_selection if {
@@ -363,11 +365,256 @@ test_rule_data_validation if {
 			"msg": "Rule data allowed_registry_prefixes has unexpected format: 0: Invalid type. Expected: string, given: integer",
 			"severity": "failure",
 		},
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+			"severity": "warning",
+		},
 	}
 
 	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
 		with lib.sbom.cyclonedx_sboms as [{}]
 		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_signature_verified_base_image if {
+	sboms := [{"formulation": [{"components": [{
+		"name": "ubi",
+		"type": "container",
+		"properties": [{"name": "konflux:container:is_base_image", "value": "true"}],
+		"purl": "pkg:oci/ubi@sha256:abc?repository_url=unknown.registry.io/ubi",
+	}]}]}]
+
+	assertions.assert_empty(base_image_registries.deny) with lib.sbom.cyclonedx_sboms as sboms
+		with lib.sbom.spdx_sboms as []
+		with data.rule_data.allowed_registry_prefixes as ["other.registry.io/"]
+		with data.rule_data.signing_identities as {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}
+		with ec.sigstore.verify_image as {"success": true, "errors": []}
+}
+
+test_signature_verification_failed if {
+	sboms := [{"formulation": [{"components": [{
+		"name": "ubi",
+		"type": "container",
+		"properties": [{"name": "konflux:container:is_base_image", "value": "true"}],
+		"purl": "pkg:oci/ubi@sha256:abc?repository_url=unknown.registry.io/ubi",
+	}]}]}]
+
+	expected := {{
+		"code": "base_image_registries.base_image_permitted",
+		# regal ignore:line-length
+		"msg": "Base image \"unknown.registry.io/ubi@sha256:abc\" is not permitted",
+		"term": "unknown.registry.io/ubi",
+	}}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with lib.sbom.cyclonedx_sboms as sboms
+		with lib.sbom.spdx_sboms as []
+		with data.rule_data.allowed_registry_prefixes as ["other.registry.io/"]
+		with data.rule_data.signing_identities as {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}
+		with ec.sigstore.verify_image as {"success": false, "errors": ["signature verification failed"]}
+}
+
+test_no_release_key_is_noop if {
+	sboms := [{"formulation": [{"components": [{
+		"name": "ubi",
+		"type": "container",
+		"properties": [{"name": "konflux:container:is_base_image", "value": "true"}],
+		"purl": "pkg:oci/ubi@sha256:abc?repository_url=registry.redhat.io/ubi",
+	}]}]}]
+
+	expected := {{
+		"code": "base_image_registries.allowed_registries_provided",
+		# regal ignore:line-length
+		"msg": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+		"severity": "warning",
+	}}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with lib.sbom.cyclonedx_sboms as sboms
+		with lib.sbom.spdx_sboms as []
+		with data.rule_data as {"allowed_registry_prefixes": ["registry.redhat.io/"]}
+}
+
+test_allowed_with_only_release_key if {
+	sboms := [{"formulation": [{"components": [{
+		"name": "ubi",
+		"type": "container",
+		"properties": [{"name": "konflux:container:is_base_image", "value": "true"}],
+		"purl": "pkg:oci/ubi@sha256:abc?repository_url=unknown.registry.io/ubi",
+	}]}]}]
+
+	assertions.assert_empty(base_image_registries.deny) with lib.sbom.cyclonedx_sboms as sboms
+		with lib.sbom.spdx_sboms as []
+		with data.rule_data as {"signing_identities": {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}}
+		with ec.sigstore.verify_image as {"success": true, "errors": []}
+}
+
+test_deprecation_warning_registry_prefixes_without_key if {
+	expected := {{
+		"code": "base_image_registries.allowed_registries_provided",
+		# regal ignore:line-length
+		"msg": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+		"severity": "warning",
+	}}
+
+	d := {"allowed_registry_prefixes": ["registry.redhat.io/"]}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+		with data.rule_data as d
+}
+
+test_no_deprecation_warning_with_signing_identity if {
+	assertions.assert_empty(base_image_registries.deny) with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+		with data.rule_data.signing_identities as {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}
+}
+
+test_no_deprecation_warning_without_prefixes if {
+	assertions.assert_empty(base_image_registries.deny) with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+		with data.rule_data as {"signing_identities": {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}}
+}
+
+test_signing_identities_validation if {
+	d := {
+		"signing_identities": 42,
+		"allowed_registry_prefixes": ["registry.redhat.io/"],
+	}
+
+	expected := {
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "Rule data signing_identities has unexpected format: expected an object, got number",
+			"severity": "failure",
+		},
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+			"severity": "warning",
+		},
+	}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_signing_identity_entry_validation if {
+	d := {
+		"signing_identities": {"rh-release": "not-an-object"},
+		"allowed_registry_prefixes": ["registry.redhat.io/"],
+	}
+
+	expected := {{
+		"code": "base_image_registries.allowed_registries_provided",
+		# regal ignore:line-length
+		"msg": "Rule data signing_identities.rh-release has unexpected format: expected an object, got string",
+		"severity": "failure",
+	}}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_signing_identity_validation_integration if {
+	d := {"signing_identities": {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH..."}}}
+
+	expected := {{
+		"code": "base_image_registries.allowed_registries_provided",
+		# regal ignore:line-length
+		"msg": "Rule data signing_identities.rh-release requires rekor_url, rekor_public_key, or ignore_rekor when using public_key verification",
+		"severity": "failure",
+	}}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_opts_passed_directly_from_rule_data if {
+	sboms := [{"formulation": [{"components": [{
+		"name": "ubi",
+		"type": "container",
+		"properties": [{"name": "konflux:container:is_base_image", "value": "true"}],
+		"purl": "pkg:oci/ubi@sha256:abc?repository_url=unknown.registry.io/ubi",
+	}]}]}]
+
+	signing_identity := {
+		"public_key": "k8s://openshift-pipelines/release-signing-key",
+		"ignore_rekor": true,
+	}
+
+	assertions.assert_empty(base_image_registries.deny) with lib.sbom.cyclonedx_sboms as sboms
+		with lib.sbom.spdx_sboms as []
+		with data.rule_data as {"signing_identities": {"rh-release": signing_identity}}
+		with ec.sigstore.verify_image as _mock_verify_opts_match
+}
+
+test_allowed_registries_provided_with_signing_identity if {
+	assertions.assert_empty(base_image_registries.deny) with data.rule_data as {"signing_identities": {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}}}
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_prefix_validation_with_signing_identity if {
+	d := {
+		"signing_identities": {"rh-release": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}},
+		"allowed_registry_prefixes": [1, "foo", "foo"],
+	}
+
+	expected := {
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "Rule data allowed_registry_prefixes has unexpected format: (Root): array items[1,2] must be unique",
+			"severity": "failure",
+		},
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "Rule data allowed_registry_prefixes has unexpected format: 0: Invalid type. Expected: string, given: integer",
+			"severity": "failure",
+		},
+	}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+test_signing_identities_missing_expected_key if {
+	d := {
+		"signing_identities": {"wrong-name": {"public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYH...", "ignore_rekor": true}},
+		"allowed_registry_prefixes": ["registry.redhat.io/"],
+	}
+
+	expected := {
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "Rule data signing_identities does not contain the expected key \"rh-release\"",
+			"severity": "warning",
+		},
+		{
+			"code": "base_image_registries.allowed_registries_provided",
+			# regal ignore:line-length
+			"msg": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+			"severity": "warning",
+		},
+	}
+
+	assertions.assert_equal_results(base_image_registries.deny, expected) with data.rule_data as d
+		with lib.sbom.cyclonedx_sboms as [{}]
+		with lib.sbom.spdx_sboms as [{}]
+}
+
+_mock_verify_opts_match(_, opts) := {"success": true, "errors": []} if {
+	opts.public_key == "k8s://openshift-pipelines/release-signing-key"
+	opts.ignore_rekor == true
 }
 
 _spdx_sbom := [{"packages": [
