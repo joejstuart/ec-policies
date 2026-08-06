@@ -60,8 +60,25 @@ test_blob_from_image_multi_layer if {
 	result == "first blob"
 }
 
+test_parsed_blob_if_valid_json if {
+	result := oci.parsed_blob_if_valid("ref") with ec.oci.blob as _mock_json_blob
+	result == {"key": "value"}
+}
+
+test_parsed_blob_if_valid_invalid_json if {
+	not oci.parsed_blob_if_valid("ref") with ec.oci.blob as _mock_invalid_blob
+}
+
+test_parsed_blob_if_valid_null if {
+	not oci.parsed_blob_if_valid("ref") with ec.oci.blob as null
+}
+
 # Mock that only returns a value for the expected digest ref, verifying
 # that blob_from_image constructs the correct ref from the layer digest.
 _mock_blob("registry.io/repository/image@sha256:abc123") := "blob content"
 
 _mock_blob_multi("registry.io/repo/img@sha256:first") := "first blob"
+
+_mock_json_blob(_) := `{"key": "value"}`
+
+_mock_invalid_blob(_) := "not valid json {"

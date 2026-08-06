@@ -8,6 +8,14 @@ import rego.v1
 # cross-eval caching.
 parsed_blob(ref) := json.unmarshal(ec.oci.blob(ref))
 
+# parsed_blob_if_valid is a tolerant variant that returns undefined
+# instead of erroring when the blob is missing or not valid JSON.
+parsed_blob_if_valid(ref) := result if {
+	raw := ec.oci.blob(ref)
+	json.is_valid(raw)
+	result := json.unmarshal(raw)
+}
+
 parsed_blob_from_image(ref) := result if {
 	parsed := image.parse(ref)
 	manifest := ec.oci.image_manifest(ref)
