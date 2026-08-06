@@ -420,8 +420,10 @@ deny contains result if {
 #     Package %s has PURL type %q which requires Hermeto attribution but was
 #     not processed by Hermeto
 #   solution: >-
-#     Add prefetch-input configuration to the build so Hermeto processes
-#     dependencies for this ecosystem, or request a policy exception.
+#     Set the prefetch-input pipeline parameter to the package manager name
+#     matching the PURL type (e.g. "gomod" for golang, "cargo" for cargo) so
+#     Hermeto processes the project's dependencies during the
+#     prefetch-dependencies task.
 #   collections:
 #   - redhat
 #   - policy_data
