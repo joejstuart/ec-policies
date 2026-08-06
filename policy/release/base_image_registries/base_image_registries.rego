@@ -14,23 +14,27 @@ import data.lib.json as j
 import data.lib.metadata
 import data.lib.rule_data
 import data.lib.sbom
+import data.lib.sigstore
 
 # METADATA
-# title: Base image comes from permitted registry
+# title: Base image is permitted
 # description: >-
-#   Verify that the base images used when building a container image come from a known
-#   set of trusted registries to reduce potential supply chain attacks. By default this
-#   policy defines trusted registries as registries that are fully maintained by Red
-#   Hat and only contain content produced by Red Hat. The list of permitted registries
-#   can be customized by setting the `allowed_registry_prefixes` list in the rule data.
-#   Base images that are found in the snapshot being validated are also allowed since EC
-#   will also validate those images individually.
+#   Verify that the base images used when building a container image are permitted.
+#   Images can be permitted in three ways: by having a valid signature
+#   verified against the `rh-release` entry in `signing_identities` rule data
+#   (preferred), by matching a component digest in the snapshot, or by matching
+#   a registry prefix from `allowed_registry_prefixes` rule data (deprecated).
+#   Registry prefix matching is deprecated and will be removed in a future release.
 # custom:
 #   short_name: base_image_permitted
-#   failure_msg: Base image %q is from a disallowed registry
+#   failure_msg: Base image %q is not permitted
 #   solution: >-
-#     Make sure the image used in each task comes from a trusted registry. The list of
-#     trusted registries is a configurable xref:cli:ROOT:configuration.adoc#_data_sources[data source].
+#     Make sure the base image is permitted by one of the following methods (in order
+#     of preference): configure a signing identity under the `rh-release` key in the
+#     `signing_identities` xref:cli:ROOT:configuration.adoc#_data_sources[data source]
+#     so the image signature can be verified, ensure the image digest matches a component
+#     in the snapshot, or add the image registry to the `allowed_registry_prefixes` data
+#     source (deprecated).
 #   collections:
 #   - minimal
 #   - redhat
@@ -74,16 +78,18 @@ deny contains result if {
 }
 
 # METADATA
-# title: Allowed base image registry prefixes list was provided
+# title: Allowed base image registry prefixes list or signing identity was provided
 # description: >-
-#   Confirm the `allowed_registry_prefixes` rule data was provided, since it's
-#   required by the policy rules in this package.
+#   Confirm that either the `allowed_registry_prefixes` or a `signing_identities`
+#   entry was provided, since at least one is required by the policy rules
+#   in this package.
 # custom:
 #   short_name: allowed_registries_provided
 #   failure_msg: "%s"
 #   solution: >-
-#     Make sure to configure a list of trusted registries as a
-#     xref:cli:ROOT:configuration.adoc#_data_sources[data source].
+#     Make sure to configure either a signing identity under the `rh-release` key in
+#     the `signing_identities` xref:cli:ROOT:configuration.adoc#_data_sources[data source]
+#     or a list of trusted registry prefixes in `allowed_registry_prefixes`.
 #   collections:
 #   - minimal
 #   - redhat
@@ -105,7 +111,12 @@ _image_ref_permitted(image_ref) if {
 		img := image.parse(component.containerImage)
 	}
 	image.parse(image_ref).digest in allowed_digests
+} else if {
+	info := ec.sigstore.verify_image(image_ref, _signing_identity)
+	object.get(info, "success", false) == true
 }
+
+_signing_identity := rule_data.get(_signing_identities_key)[_signing_identity_name]
 
 _cyclonedx_base_images := [_cyclonedx_image_ref(component) |
 	some s in sbom.cyclonedx_sboms
@@ -170,7 +181,6 @@ _cyclonedx_image_ref(component) := image_ref if {
 	image_ref := sbom.image_ref_from_purl(purl)
 }
 
-# Verify allowed_registry_prefixes is a non-empty list of strings
 _rule_data_errors contains error if {
 	some e in j.validate_schema(
 		rule_data.get(_rule_data_key),
@@ -179,7 +189,7 @@ _rule_data_errors contains error if {
 			"type": "array",
 			"items": {"type": "string"},
 			"uniqueItems": true,
-			"minItems": 1,
+			"minItems": _prefixes_min_items,
 		},
 	)
 	error := {
@@ -188,4 +198,70 @@ _rule_data_errors contains error if {
 	}
 }
 
+_rule_data_errors contains error if {
+	prefixes := rule_data.get(_rule_data_key)
+	is_array(prefixes)
+	count(prefixes) > 0
+	not _signing_identity
+	error := {
+		# regal ignore:line-length
+		"message": "allowed_registry_prefixes is configured without signing_identities. Migrate to signature-based verification by setting signing_identities in rule data.",
+		"severity": "warning",
+	}
+}
+
+_rule_data_errors contains error if {
+	val := rule_data.get(_signing_identities_key)
+	val != []
+	not is_object(val)
+	msg := sprintf(
+		"Rule data %s has unexpected format: expected an object, got %s",
+		[_signing_identities_key, type_name(val)],
+	)
+	error := {"message": msg, "severity": "failure"}
+}
+
+_rule_data_errors contains error if {
+	identities := rule_data.get(_signing_identities_key)
+	is_object(identities)
+	val := object.get(identities, _signing_identity_name, {})
+	val != {}
+	not is_object(val)
+	msg := sprintf(
+		"Rule data %s.%s has unexpected format: expected an object, got %s",
+		[_signing_identities_key, _signing_identity_name, type_name(val)],
+	)
+	error := {"message": msg, "severity": "failure"}
+}
+
+_rule_data_errors contains error if {
+	some e in sigstore.validate(_signing_identity)
+	error := {
+		"message": sprintf("Rule data %s.%s %s", [_signing_identities_key, _signing_identity_name, e.message]),
+		"severity": e.severity,
+	}
+}
+
+_rule_data_errors contains error if {
+	identities := rule_data.get(_signing_identities_key)
+	is_object(identities)
+	count(identities) > 0
+	not _signing_identity_name in object.keys(identities)
+	msg := sprintf(
+		"Rule data %s does not contain the expected key %q",
+		[_signing_identities_key, _signing_identity_name],
+	)
+	error := {"message": msg, "severity": "warning"}
+}
+
 _rule_data_key := "allowed_registry_prefixes"
+
+_signing_identities_key := "signing_identities"
+
+_signing_identity_name := "rh-release"
+
+default _prefixes_min_items := 1
+
+_prefixes_min_items := 0 if {
+	is_object(_signing_identity)
+}
