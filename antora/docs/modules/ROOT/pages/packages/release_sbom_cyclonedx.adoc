@@ -102,7 +102,7 @@ Verify that no components in the CycloneDX SBOM were fetched using an experiment
 
 Registry dependencies with a PURL type listed in vendored_purl_types must be processed by Hermeto. When a hermetic build omits prefetch-input for a vendored ecosystem, Hermeto never runs and the SBOM contains only Syft-reported module-level data, which is insufficient for CVE analysis. This rule denies any such component that lacks the hermeto:found_by (or cachi2:found_by) property.
 
-*Solution*: Set the prefetch-input pipeline parameter to the package manager name matching the PURL type (e.g. "gomod" for golang, "cargo" for cargo) so Hermeto processes the project's dependencies during the prefetch-dependencies task.
+*Solution*: Set the prefetch-input pipeline parameter to the Hermeto package manager name for the ecosystem (e.g. "gomod" for pkg:golang, "cargo" for pkg:cargo) so Hermeto processes the project's dependencies during the prefetch-dependencies task.
 
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Package %s has PURL type %q which requires Hermeto attribution but was not processed by Hermeto`

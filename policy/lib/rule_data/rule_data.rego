@@ -164,8 +164,8 @@ defaults := {
 	#
 	# Used in release/sbom_cyclonedx and release/sbom_spdx
 	# PURL types for ecosystems where vendoring is possible and Hermeto attribution is required
-	# e.g., ["golang", "cargo"]
-	"vendored_purl_types": [],
+	# Current supported vendored types: ["golang", "cargo"]
+	"vendored_purl_types": ["golang", "cargo"],
 	#
 	# Used in release/lib/attestations.rego
 	# Allowed provenance buildTypes for PipelineRun attestations (both SLSA v0.2 and v1)
