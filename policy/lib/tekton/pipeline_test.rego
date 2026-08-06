@@ -591,3 +591,14 @@ test_pipeline_required_tasks_rule_data_overrides_on_key_conflict if {
 	assertions.assert_equal(result.tasks, {"buildah", "git-clone", "clair-scan"})
 	assertions.assert_equal(result.effective_on, "2024-06-01T00:00:00Z")
 }
+
+test_pipeline_required_tasks_rule_data_only if {
+	rule_data_config := {"docker": [{
+		"effective_on": "2024-06-01T00:00:00Z",
+		"tasks": ["buildah", "git-clone"],
+	}]}
+
+	result := tekton.pipeline_required_tasks with data.rule_data__configuration__["pipeline-required-tasks"] as rule_data_config
+
+	assertions.assert_equal(result, {"docker": [{"effective_on": "2024-06-01T00:00:00Z", "tasks": ["buildah", "git-clone"]}]})
+}

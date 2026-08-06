@@ -9,7 +9,11 @@ pipeline_label := "pipelines.openshift.io/runtime"
 
 task_label := "build.appstudio.redhat.com/build_type"
 
-pipeline_required_tasks := object.union(data["pipeline-required-tasks"], rule_data.get("pipeline-required-tasks"))
+default _prt_base := {}
+
+_prt_base := data["pipeline-required-tasks"]
+
+pipeline_required_tasks := object.union(_prt_base, rule_data.get("pipeline-required-tasks"))
 
 latest_required_pipeline_tasks(pipeline) := _merged_required_task_list(pipeline, "newest")
 
