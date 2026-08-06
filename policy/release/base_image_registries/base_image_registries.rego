@@ -29,8 +29,12 @@ import data.lib.sigstore
 #   short_name: base_image_permitted
 #   failure_msg: Base image %q is not permitted
 #   solution: >-
-#     Make sure the image used in each task comes from a trusted registry. The list of
-#     trusted registries is a configurable xref:cli:ROOT:configuration.adoc#_data_sources[data source].
+#     Make sure the base image is permitted by one of the following methods (in order
+#     of preference): configure a signing identity under the `rh-release` key in the
+#     `signing_identities` xref:cli:ROOT:configuration.adoc#_data_sources[data source]
+#     so the image signature can be verified, ensure the image digest matches a component
+#     in the snapshot, or add the image registry to the `allowed_registry_prefixes` data
+#     source (deprecated).
 #   collections:
 #   - minimal
 #   - redhat
@@ -83,8 +87,9 @@ deny contains result if {
 #   short_name: allowed_registries_provided
 #   failure_msg: "%s"
 #   solution: >-
-#     Make sure to configure a list of trusted registries as a
-#     xref:cli:ROOT:configuration.adoc#_data_sources[data source].
+#     Make sure to configure either a signing identity under the `rh-release` key in
+#     the `signing_identities` xref:cli:ROOT:configuration.adoc#_data_sources[data source]
+#     or a list of trusted registry prefixes in `allowed_registry_prefixes`.
 #   collections:
 #   - minimal
 #   - redhat
