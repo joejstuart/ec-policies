@@ -97,6 +97,19 @@ Verify that no components in the CycloneDX SBOM were fetched using an experiment
 * Effective from: `2026-08-01T00:00:00Z`
 * https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/sbom_cyclonedx/sbom_cyclonedx.rego#L377[Source, window="_blank"]
 
+[#sbom_cyclonedx__hermeto_attribution_required]
+=== link:#sbom_cyclonedx__hermeto_attribution_required[Hermeto attribution required]
+
+Registry dependencies with a PURL type listed in vendored_purl_types must be processed by Hermeto. When a hermetic build omits prefetch-input for a vendored ecosystem, Hermeto never runs and the SBOM contains only Syft-reported module-level data, which is insufficient for CVE analysis. This rule denies any such component that lacks the hermeto:found_by (or cachi2:found_by) property.
+
+*Solution*: Add prefetch-input configuration to the build so Hermeto processes dependencies for this ecosystem, or request a policy exception.
+
+* Rule type: [rule-type-indicator failure]#FAILURE#
+* FAILURE message: `Package %s has PURL type %q which requires Hermeto attribution but was not processed by Hermeto`
+* Code: `sbom_cyclonedx.hermeto_attribution_required`
+* Effective from: `2026-10-01T00:00:00Z`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/sbom_cyclonedx/sbom_cyclonedx.rego#L412[Source, window="_blank"]
+
 [#sbom_cyclonedx__proxy_metadata_required]
 === link:#sbom_cyclonedx__proxy_metadata_required[Proxy metadata required]
 
