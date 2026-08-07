@@ -704,7 +704,7 @@ _mock_image_manifest_both_vulns(ref) := _manifests_both_vulns[ref]
 _mock_blob_both_vulns(ref) := _blobs_both_vulns[ref]
 
 test_name_function_with_missing_fields if {
-	# Test _name with neither "name" nor "id" field
+	# Test _name with neither "name", "cve", nor "id" field
 	vuln_no_name := {"severity": "HIGH"}
 	assertions.assert_equal(cve._name(vuln_no_name), "UNKNOWN")
 
@@ -712,9 +712,200 @@ test_name_function_with_missing_fields if {
 	vuln_with_name := {"name": "CVE-2024-1234"}
 	assertions.assert_equal(cve._name(vuln_with_name), "CVE-2024-1234")
 
+	# Test _name with "cve" field (roxctl format)
+	vuln_with_cve := {"cve": "CVE-2024-9012"}
+	assertions.assert_equal(cve._name(vuln_with_cve), "CVE-2024-9012")
+
 	# Test _name with "id" field (TPA format)
 	vuln_with_id := {"id": "CVE-2024-5678"}
 	assertions.assert_equal(cve._name(vuln_with_id), "CVE-2024-5678")
+}
+
+# roxctl scan tests
+
+test_success_with_rox_report if {
+	no_vuln_rox_attestations := _attestations_with_rox_reports({"sha256:image_digest": "sha256:no_vulnerabilities_rox_report_digest"})
+	assertions.assert_empty(cve.deny | cve.warn) with input.attestations as no_vuln_rox_attestations
+		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
+		with ec.oci.image_manifest as _mock_rox_image_manifest
+		with ec.oci.blob as _mock_rox_blob
+}
+
+test_rox_issues_trigger_deny if {
+	expected := {
+		{
+			"code": "cve.cve_blockers",
+			"msg": "Found \"CVE-2019-14271\" vulnerability of critical security level",
+			"term": "CVE-2019-14271",
+		},
+		{
+			"code": "cve.cve_blockers",
+			"msg": "Found \"CVE-2015-3627\" vulnerability of high security level",
+			"term": "CVE-2015-3627",
+		},
+		{
+			"code": "cve.cve_blockers",
+			"msg": "Found \"CVE-2017-11468\" vulnerability of high security level",
+			"term": "CVE-2017-11468",
+		},
+	}
+
+	assertions.assert_equal_results(cve.deny, expected) with input.attestations as _rox_attestations
+		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
+		with ec.oci.image_manifest as _mock_rox_image_manifest
+		with ec.oci.blob as _mock_rox_blob
+}
+
+test_rox_unpatched_issues_trigger_warn if {
+	expected := {
+		{
+			"code": "cve.unpatched_cve_warnings",
+			"msg": "Found \"CVE-2020-8911\" non-blocking unpatched vulnerability of medium security level",
+			"term": "CVE-2020-8911",
+		},
+		{
+			"code": "cve.unpatched_cve_warnings",
+			"msg": "Found \"CVE-2020-8912\" non-blocking unpatched vulnerability of low security level",
+			"term": "CVE-2020-8912",
+		},
+	}
+
+	assertions.assert_equal_results(cve.warn, expected) with input.attestations as _rox_attestations
+		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
+		with ec.oci.image_manifest as _mock_rox_image_manifest
+		with ec.oci.blob as _mock_rox_blob
+		with data.rule_data.warn_unpatched_cve_security_levels as ["medium", "low"]
+}
+
+test_rox_severity_mapping if {
+	expected := {{
+		"code": "cve.cve_blockers",
+		"msg": "Found \"CVE-2015-3631\" vulnerability of medium security level",
+		"term": "CVE-2015-3631",
+	}}
+
+	assertions.assert_equal_results(cve.deny, expected) with input.attestations as _rox_attestations
+		with input.image.ref as "registry.io/repository/image@sha256:image_digest"
+		with ec.oci.image_manifest as _mock_rox_image_manifest
+		with ec.oci.blob as _mock_rox_blob
+		with data.rule_data.restrict_cve_security_levels as ["medium"]
+		with data.rule_data.restrict_unpatched_cve_security_levels as []
+		with data.rule_data.warn_unpatched_cve_security_levels as []
+}
+
+test_rox_normalized_severity if {
+	assertions.assert_equal(cve._rox_normalized_severity({"severity": "CRITICAL_VULNERABILITY_SEVERITY"}), "critical")
+	assertions.assert_equal(cve._rox_normalized_severity({"severity": "IMPORTANT_VULNERABILITY_SEVERITY"}), "high")
+	assertions.assert_equal(cve._rox_normalized_severity({"severity": "MODERATE_VULNERABILITY_SEVERITY"}), "medium")
+	assertions.assert_equal(cve._rox_normalized_severity({"severity": "LOW_VULNERABILITY_SEVERITY"}), "low")
+	assertions.assert_equal(cve._rox_normalized_severity({"severity": "UNSET_VULNERABILITY_SEVERITY"}), "unknown")
+	assertions.assert_equal(cve._rox_normalized_severity({}), "unknown")
+}
+
+test_is_rox_vuln_patched if {
+	assertions.assert_equal(cve._is_rox_vuln_patched({"fixedBy": "1.2.3"}), true)
+	assertions.assert_equal(cve._is_rox_vuln_patched({"fixedBy": ""}), false)
+	assertions.assert_equal(cve._is_rox_vuln_patched({}), false)
+}
+
+# roxctl report mock data
+
+_rox_scan_report := {"roxctl_new": [
+	{
+		"cve": "CVE-2019-14271",
+		"advisory": [],
+		"summary": "Moby Docker cp broken with debian containers in github.com/docker/docker",
+		"links": ["https://nvd.nist.gov/vuln/detail/CVE-2019-14271"],
+		"fixedBy": "20.10.0-beta1+incompatible",
+		"severity": "CRITICAL_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/docker/docker", "version": "v1.4.2-0.20200203170920-46ec8731fbce", "source": "usr/bin/opm-v1.26.4"}],
+	},
+	{
+		"cve": "CVE-2015-3627",
+		"advisory": [],
+		"summary": "Symlink Attack in Libcontainer and Docker Engine in github.com/docker/docker",
+		"links": ["https://nvd.nist.gov/vuln/detail/CVE-2015-3627"],
+		"fixedBy": "1.6.1",
+		"severity": "IMPORTANT_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/docker/docker", "version": "v1.4.2-0.20200203170920-46ec8731fbce", "source": "usr/bin/opm-v1.26.4"}],
+	},
+	{
+		"cve": "CVE-2017-11468",
+		"advisory": [],
+		"summary": "Docker Registry has Allocation of Resources Without Limits or Throttling",
+		"links": ["https://osv.dev/vulnerability/GHSA-h62f-wm92-2cmw"],
+		"fixedBy": "2.7.0-rc.0+incompatible",
+		"severity": "IMPORTANT_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/docker/distribution", "version": "v0.0.0-20191216044856-a8371794149d", "source": "usr/bin/opm-v1.28.0"}],
+	},
+	{
+		"cve": "CVE-2015-3631",
+		"advisory": [],
+		"summary": "Arbitrary File Override in Docker Engine",
+		"links": ["https://osv.dev/vulnerability/GHSA-v4h8-794j-g8mm"],
+		"fixedBy": "1.6.1",
+		"severity": "MODERATE_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/docker/docker", "version": "v1.4.2-0.20200203170920-46ec8731fbce", "source": "usr/bin/opm-v1.26.4"}],
+	},
+	{
+		"cve": "CVE-2020-8911",
+		"advisory": [],
+		"summary": "CBC padding oracle issue in AWS S3 Crypto SDK V1",
+		"links": ["https://nvd.nist.gov/vuln/detail/CVE-2020-8911"],
+		"fixedBy": "",
+		"severity": "MODERATE_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/aws/aws-sdk-go", "version": "v1.44.258", "source": "usr/bin/conftest"}],
+	},
+	{
+		"cve": "CVE-2020-8912",
+		"advisory": [],
+		"summary": "CBC padding oracle issue in AWS S3 Crypto SDK V1",
+		"links": ["https://nvd.nist.gov/vuln/detail/CVE-2020-8912"],
+		"fixedBy": "",
+		"severity": "LOW_VULNERABILITY_SEVERITY",
+		"components": [{"component": "github.com/aws/aws-sdk-go", "version": "v1.44.258", "source": "usr/bin/conftest"}],
+	},
+]}
+
+_rox_manifests := {
+	"registry.io/repository/image@sha256:rox_report_digest": {"layers": [{
+		"mediaType": "application/vnd.redhat.rox-report+json",
+		"digest": "sha256:rox_report_blob_digest",
+	}]},
+	"registry.io/repository/image@sha256:no_vulnerabilities_rox_report_digest": {"layers": [{
+		"mediaType": "application/vnd.redhat.rox-report+json",
+		"digest": "sha256:no_vulnerabilities_rox_blob_digest",
+	}]},
+}
+
+_rox_blobs := {
+	"registry.io/repository/image@sha256:rox_report_blob_digest": json.marshal(_rox_scan_report),
+	"registry.io/repository/image@sha256:no_vulnerabilities_rox_blob_digest": json.marshal({"roxctl_new": []}),
+}
+
+_mock_rox_image_manifest(ref) := _rox_manifests[ref]
+
+_mock_rox_blob(ref) := _rox_blobs[ref]
+
+_rox_attestations := _attestations_with_rox_reports({"sha256:image_digest": "sha256:rox_report_digest"})
+
+_attestations_with_rox_reports(reports) := attestations if {
+	slsav1_task_with_result := tekton_test.resolved_slsav1_task("roxctl-scan", [], [{
+		"name": cve._reports_result_name,
+		"type": "string",
+		"value": reports,
+	}])
+
+	att1 := lib_test.att_mock_helper_ref(
+		cve._reports_result_name,
+		reports,
+		"roxctl-scan",
+		_bundle,
+	)
+
+	task_with_bundle := tekton_test.with_bundle(slsav1_task_with_result, _bundle)
+	att2 := tekton_test.slsav1_attestation([task_with_bundle])
+	attestations := [att1, att2]
 }
 
 # TPA report mock data

@@ -58,9 +58,9 @@ The SLSA Provenance attestation for the image is inspected to ensure CVEs that d
 [#cve__cve_results_found]
 === link:#cve__cve_results_found[CVE scan results found]
 
-Confirm that CVE scan task results (Clair or TPA) are present in the SLSA Provenance attestation of the build pipeline.
+Confirm that CVE scan task results (Clair, TPA, or roxctl) are present in the SLSA Provenance attestation of the build pipeline.
 
-*Solution*: Make sure there is a successful task in the build pipeline that runs a CVE scan (Clair or TPA).
+*Solution*: Make sure there is a successful task in the build pipeline that runs a CVE scan (Clair, TPA, or roxctl).
 
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `CVE scan results were not found`
@@ -101,4 +101,4 @@ Confirm the expected rule data keys have been provided in the expected format. T
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `%s`
 * Code: `cve.rule_data_provided`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/cve/cve.rego#L219[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/cve/cve.rego#L222[Source, window="_blank"]
