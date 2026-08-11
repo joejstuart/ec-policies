@@ -110,6 +110,7 @@ assert_allowed(purl, disallowed_packages) if {
 
 	assertions.assert_empty(sbom_spdx.deny) with input.attestations as [att] # regal ignore:with-outside-test-context
 		with data.rule_data.disallowed_packages as disallowed_packages # regal ignore:with-outside-test-context
+		with data.rule_data.vendored_purl_types as [] # regal ignore:with-outside-test-context
 		with ec.oci.image_referrers as [] # regal ignore:with-outside-test-context
 		with ec.oci.image_tag_refs as [] # regal ignore:with-outside-test-context
 }
@@ -130,6 +131,7 @@ assert_not_allowed(purl, disallowed_packages) if {
 		with ec.oci.image_referrers as [] # regal ignore:with-outside-test-context
 		with ec.oci.image_tag_refs as [] # regal ignore:with-outside-test-context
 		with data.rule_data.disallowed_packages as disallowed_packages # regal ignore:with-outside-test-context
+		with data.rule_data.vendored_purl_types as [] # regal ignore:with-outside-test-context
 }
 
 test_external_references_allowed_regex_with_no_rules_is_allowed if {
@@ -1254,7 +1256,7 @@ test_hermeto_attribution_required_spdx_cargo_denied if {
 }
 
 _spdx_vendored_package(purl, with_hermeto) := pkg if {
-	with_hermeto
+	with_hermeto == true
 	pkg := {
 		"name": "vendored-package",
 		"SPDXID": "SPDXRef-vendored-package",

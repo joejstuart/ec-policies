@@ -699,6 +699,7 @@ assert_allowed(purl, disallowed_packages) if {
 		with ec.oci.image_referrers as [] # regal ignore:with-outside-test-context
 		with ec.oci.image_tag_refs as [] # regal ignore:with-outside-test-context
 		with data.rule_data.disallowed_packages as disallowed_packages # regal ignore:with-outside-test-context
+		with data.rule_data.vendored_purl_types as [] # regal ignore:with-outside-test-context
 }
 
 assert_not_allowed(purl, disallowed_packages) if {
@@ -717,6 +718,7 @@ assert_not_allowed(purl, disallowed_packages) if {
 		with ec.oci.image_referrers as [] # regal ignore:with-outside-test-context
 		with ec.oci.image_tag_refs as [] # regal ignore:with-outside-test-context
 		with data.rule_data.disallowed_packages as disallowed_packages # regal ignore:with-outside-test-context
+		with data.rule_data.vendored_purl_types as [] # regal ignore:with-outside-test-context
 }
 
 _sbom_1_5_attestation := {"statement": {
@@ -1223,6 +1225,7 @@ test_experimental_hermeto_backend_cdx_denied if {
 		with input.image.ref as "registry.local/spam@sha256:1230000000000000000000000000000000000000000000000000000000000123"
 		with ec.oci.image_referrers as []
 		with ec.oci.image_tag_refs as []
+		with data.rule_data.vendored_purl_types as []
 }
 
 test_experimental_hermeto_backend_cdx_stable_passes if {
@@ -1302,6 +1305,7 @@ test_experimental_hermeto_backend_cdx_mixed_annotations if {
 		with input.image.ref as "registry.local/spam@sha256:1230000000000000000000000000000000000000000000000000000000000123"
 		with ec.oci.image_referrers as []
 		with ec.oci.image_tag_refs as []
+		with data.rule_data.vendored_purl_types as []
 }
 
 # hermeto_attribution_required tests
@@ -1433,7 +1437,7 @@ test_hermeto_attribution_required_cdx_cargo_denied if {
 }
 
 _cdx_vendored_component(purl, with_hermeto) := component if {
-	with_hermeto
+	with_hermeto == true
 	component := {
 		"type": "library",
 		"name": "component",
