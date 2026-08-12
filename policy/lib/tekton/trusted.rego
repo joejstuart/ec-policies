@@ -135,43 +135,11 @@ is_trusted_task_rules(task, bundle_manifests) if {
 	_task_matches_allow_rule(ref, bundle_manifests)
 }
 
-# Merging in the trusted_task_rules rule data
 _trusted_task_rules_data := {
-	"allow": array.concat(
-		_data_allow_array, # add effective allow rules
-		_rule_data_allow_array,
-	),
-	"deny": array.concat(
-		_data_deny_array, # add effective deny rules
-		_rule_data_deny_array,
-	),
+	"allow": _rule_data_allow_array,
+	"deny": _rule_data_deny_array,
 }
 
-# Safely extract allow rules from data.trusted_task_rules.
-# Each key maps to an array of rule objects; we flatten all arrays into one list.
-default _data_allow_array := []
-
-_data_allow_array := [rule |
-	some rules in data.trusted_task_rules.allow
-	some rule in rules
-] if {
-	is_object(data.trusted_task_rules)
-	is_object(data.trusted_task_rules.allow)
-}
-
-# Safely extract deny rules from data.trusted_task_rules.
-default _data_deny_array := []
-
-_data_deny_array := [rule |
-	some rules in data.trusted_task_rules.deny
-	some rule in rules
-] if {
-	is_object(data.trusted_task_rules)
-	is_object(data.trusted_task_rules.deny)
-}
-
-# Safely extract allow rules from rule_data.
-# Each key maps to an array of rule objects; we flatten all arrays into one list.
 default _rule_data_allow_array := []
 
 _rule_data_allow_array := [rule |
@@ -183,7 +151,6 @@ _rule_data_allow_array := [rule |
 	is_object(_rule_data_obj.allow)
 }
 
-# Safely extract deny rules from rule_data.
 default _rule_data_deny_array := []
 
 _rule_data_deny_array := [rule |
@@ -287,21 +254,6 @@ data_errors contains error if {
 	error := {
 		"message": sprintf("trusted_task_rules data has unexpected format: %s", [e.message]),
 		"severity": e.severity,
-	}
-}
-
-data_errors contains error if {
-	some rule_type in ["allow", "deny"]
-	some group, rules in data.trusted_task_rules[rule_type]
-	some i, rule in rules
-	"effective_on" in object.keys(rule)
-	not time.parse_rfc3339_ns(rule.effective_on)
-	error := {
-		"message": sprintf(
-			"trusted_task_rules.%s.%s[%d].effective_on is not valid RFC3339 format: %q",
-			[rule_type, group, i, rule.effective_on],
-		),
-		"severity": "failure",
 	}
 }
 

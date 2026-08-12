@@ -485,43 +485,6 @@ test_rule_data_merging if {
 		with data.rule_data.trusted_tasks as {"foo": "bar"}
 }
 
-test_data_trusted_task_rules_extraction if {
-	# Test extraction from data.trusted_task_rules (covers lines 144-156)
-	# Test when data.trusted_task_rules is provided with allow rules
-	data_rules_allow := {"allow": {"local-tasks": [{"pattern": "oci://registry.local/*"}]}}
-
-	# Task matching allow from data.trusted_task_rules should be trusted
-	allowed_task := {"spec": {"taskRef": {"resolver": "bundles", "params": [
-		# regal ignore:line-length
-		{"name": "bundle", "value": "registry.local/trusty:1.0@sha256:d19e5700000000000000000000000000000000000000000000000000d19e5700"},
-		{"name": "name", "value": "trusty"},
-		{"name": "kind", "value": "task"},
-	]}}}
-	tekton.is_trusted_task(allowed_task, _empty_bundle_manifests) with data.trusted_task_rules as data_rules_allow
-		with data.rule_data.trusted_task_rules as null
-		with data.rule_data.trusted_task_rules_enabled as true
-
-	# Test when data.trusted_task_rules is provided with deny rules
-	data_rules_deny := {"deny": {"blocked": [{"pattern": "oci://registry.local/crook/*"}]}}
-
-	# Task matching deny from data.trusted_task_rules should not be trusted
-	denied_task := {"spec": {"taskRef": {"resolver": "bundles", "params": [
-		# regal ignore:line-length
-		{"name": "bundle", "value": "registry.local/crook:1.0@sha256:d19e5700000000000000000000000000000000000000000000000000d19e5700"},
-		{"name": "name", "value": "crook"},
-		{"name": "kind", "value": "task"},
-	]}}}
-	not tekton.is_trusted_task(denied_task, _empty_bundle_manifests) with data.trusted_task_rules as data_rules_deny
-		with data.rule_data.trusted_task_rules as null
-		with data.rule_data.trusted_task_rules_enabled as true
-
-	# Test when data.trusted_task_rules is not provided (covers default cases 145, 152)
-	# Should fall back to empty arrays, so task won't be trusted via rules
-	not tekton.is_trusted_task(allowed_task, _empty_bundle_manifests) with data.trusted_task_rules as null
-		with data.rule_data.trusted_task_rules as null
-		with data.rule_data.trusted_task_rules_enabled as true
-}
-
 test_rule_data_trusted_task_rules_extraction if {
 	# Test extraction from lib_rule_data("trusted_task_rules") (covers lines 158-172)
 	# Test when lib_rule_data returns an object
@@ -843,17 +806,24 @@ test_trusted_task_rules_data_errors if {
 	assertions.assert_equal(tekton.data_errors, expected_structure) with data.rule_data.trusted_task_rules as invalid_structure
 		with data.rule_data.trusted_task_rules_enabled as true
 
-	# effective_on that fails time.parse_rfc3339_ns (via data.trusted_task_rules to bypass schema validation)
 	unparseable_date_rules := {"deny": {"blocked": [{
 		"pattern": "oci://quay.io/konflux-ci/tekton-catalog/*",
 		"effective_on": "2025-13-01T00:00:00Z",
 	}]}}
-	expected_unparseable := {{
-		# regal ignore:line-length
-		"message": "trusted_task_rules.deny.blocked[0].effective_on is not valid RFC3339 format: \"2025-13-01T00:00:00Z\"",
-		"severity": "failure",
-	}}
-	assertions.assert_equal(tekton.data_errors, expected_unparseable) with data.trusted_task_rules as unparseable_date_rules
+	expected_unparseable := {
+		{
+			# regal ignore:line-length
+			"message": "trusted_task_rules data has unexpected format: deny.blocked.0.effective_on: Does not match format 'date-time'",
+			"severity": "failure",
+		},
+		{
+			# regal ignore:line-length
+			"message": "trusted_task_rules.deny.blocked[0].effective_on is not valid RFC3339 format: \"2025-13-01T00:00:00Z\"",
+			"severity": "failure",
+		},
+	}
+	assertions.assert_equal(tekton.data_errors, expected_unparseable) with data.rule_data.trusted_task_rules as unparseable_date_rules
+		with data.rule_data.trusted_task_rules_enabled as true
 }
 
 # Test denying_pattern with invalid task (covers else branch at line 337)
