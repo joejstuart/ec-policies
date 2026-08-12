@@ -263,7 +263,7 @@ ifndef IMAGE
 endif
 
 ifndef KEY
-  KEY="../cli/key.pub"
+  KEY="hack/golden-image-key.pub"
 endif
 
 .PHONY: fetch-att
