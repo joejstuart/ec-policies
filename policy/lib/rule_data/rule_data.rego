@@ -208,3 +208,26 @@ get(key_name) := value if {
 	# If the key is not found, default to an empty list
 	value := []
 }
+
+# Returns warnings for patterns in the given rule data key that lack effective ^ anchoring.
+anchoring_errors(key) := {error |
+	some pattern in get(key)
+	is_string(pattern)
+	lacks_effective_anchor(pattern)
+	error := {
+		"message": sprintf("Pattern %q in %s is not effectively anchored with ^", [pattern, key]),
+		"severity": "warning",
+	}
+}
+
+lacks_effective_anchor(pattern) if {
+	not startswith(pattern, "^")
+}
+
+lacks_effective_anchor(pattern) if {
+	startswith(pattern, "^.*")
+}
+
+lacks_effective_anchor(pattern) if {
+	startswith(pattern, "^.+")
+}
