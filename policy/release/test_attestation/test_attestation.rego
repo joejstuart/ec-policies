@@ -34,7 +34,32 @@ import data.lib.json as j
 import data.lib.metadata
 import data.lib.rule_data
 
-_test_attestations := intoto.verified_statements_by_predicate(intoto.predicate_test_result)
+_all_test_attestations := intoto.verified_statements_by_predicate(intoto.predicate_test_result)
+
+_attestation_timestamp(statement) := ts if {
+	ts := statement.predicate.timestamp
+	is_string(ts)
+	ts != ""
+}
+
+_test_attestations contains statement if {
+	# Group statements by name first (avoids re-scanning for each attestation)
+	grouped := {name: statements |
+		some name in {_test_name(s) | some s in _all_test_attestations}
+		statements := {s |
+			some s in _all_test_attestations
+			_test_name(s) == name
+		}
+	}
+
+	# For each group, find max timestamp once
+	some name, statements in grouped
+	max_ts := max({_attestation_timestamp(s) | some s in statements})
+
+	# Filter to latest
+	some statement in statements
+	_attestation_timestamp(statement) == max_ts
+}
 
 _test_name(statement) := name if {
 	predicate := object.get(statement, "predicate", {})
