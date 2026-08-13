@@ -291,7 +291,7 @@ test_all_passed_no_violations if {
 		with ec.oci.blob as _mock_blob_passed
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	assertions.assert_empty(test_attestation.warn) with input.image.ref as _image_ref
@@ -300,7 +300,7 @@ test_all_passed_no_violations if {
 		with ec.oci.blob as _mock_blob_passed
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -317,7 +317,7 @@ test_failed_with_details if {
 		with ec.oci.blob as _mock_blob_failed_with_details
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -334,7 +334,7 @@ test_failed_no_details if {
 		with ec.oci.blob as _mock_blob_failed_no_details
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -347,7 +347,7 @@ test_warned_with_details if {
 		with ec.oci.blob as _mock_blob_warned
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	assertions.assert_equal_results(test_attestation.warn, {{
@@ -360,7 +360,7 @@ test_warned_with_details if {
 		with ec.oci.blob as _mock_blob_warned
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -377,7 +377,7 @@ test_unknown_result_value if {
 		with ec.oci.blob as _mock_blob_unknown_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -392,7 +392,7 @@ test_erred_result if {
 		with ec.oci.blob as _mock_blob_erred_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -409,7 +409,7 @@ test_missing_result_field if {
 		with ec.oci.blob as _mock_blob_missing_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -426,7 +426,7 @@ test_mixed_passed_and_failed if {
 		with ec.oci.blob as _mock_blob_mixed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	assertions.assert_empty(test_attestation.warn) with input.image.ref as _image_ref
@@ -435,7 +435,7 @@ test_mixed_passed_and_failed if {
 		with ec.oci.blob as _mock_blob_mixed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -458,7 +458,7 @@ test_test_name_from_configuration if {
 		with ec.oci.blob as _mock_blob_custom_config
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	some r in results
@@ -474,7 +474,7 @@ test_test_name_fallback if {
 		with ec.oci.blob as _mock_blob_no_config
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	some r in results
@@ -494,7 +494,7 @@ test_warned_and_failed_coexist if {
 		with ec.oci.blob as _mock_blob_warned_and_failed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	assertions.assert_equal_results(test_attestation.warn, {{
@@ -507,7 +507,7 @@ test_warned_and_failed_coexist if {
 		with ec.oci.blob as _mock_blob_warned_and_failed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -520,7 +520,7 @@ test_multiple_failures_deny if {
 		with ec.oci.blob as _mock_blob_multi_failed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 2
@@ -543,7 +543,7 @@ test_multiple_failures_no_warn if {
 		with ec.oci.blob as _mock_blob_multi_failed
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -556,7 +556,7 @@ test_non_string_result if {
 		with ec.oci.blob as _mock_blob_non_string_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 1
@@ -580,7 +580,7 @@ test_missing_predicate if {
 		with ec.oci.blob as _mock_blob_missing_predicate
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 1
@@ -608,7 +608,7 @@ test_failures_count_only if {
 		with ec.oci.blob as _mock_blob_failures_count_only
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -629,7 +629,7 @@ test_warnings_count_only if {
 		with ec.oci.blob as _mock_blob_warnings_count_only
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -647,7 +647,7 @@ test_false_result_value if {
 		with ec.oci.blob as _mock_blob_false_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 1
@@ -667,7 +667,7 @@ test_null_result_value if {
 		with ec.oci.blob as _mock_blob_null_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 1
@@ -689,7 +689,7 @@ test_empty_string_result_value if {
 		with ec.oci.blob as _mock_blob_empty_string_result
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(results) == 1
@@ -717,7 +717,7 @@ test_count_triggers_deny if {
 		with ec.oci.blob as _mock_blob_count_triggers_deny
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	some r in results
@@ -747,7 +747,7 @@ test_skipped_result if {
 		with ec.oci.blob as _mock_blob_skipped
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 }
 
@@ -761,7 +761,7 @@ test_informative_test_warns_instead_of_denies if {
 		with ec.oci.blob as _mock_blob_failed_with_details
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 		with data.rule_data.informative_test_attestations as ["clair-scan"]
 
@@ -771,7 +771,7 @@ test_informative_test_warns_instead_of_denies if {
 		with ec.oci.blob as _mock_blob_failed_with_details
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 		with data.rule_data.informative_test_attestations as ["clair-scan"]
 
@@ -787,7 +787,7 @@ test_non_informative_test_still_denies if {
 		with ec.oci.blob as _mock_blob_failed_with_details
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 		with data.rule_data.informative_test_attestations as ["some-other-test"]
 
@@ -814,7 +814,7 @@ test_subject_mismatch_denied if {
 		with ec.oci.blob as _mock_blob_wrong_subject
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	_has_code(results, "test_attestation.subject_mismatch")
@@ -828,7 +828,7 @@ test_subject_match_passes if {
 		with ec.oci.blob as _mock_blob_passed
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	not _has_code(results, "test_attestation.subject_mismatch")
@@ -850,7 +850,7 @@ test_missing_subject_triggers_mismatch if {
 		with ec.oci.blob as _mock_blob_no_subject
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	_has_code(results, "test_attestation.subject_mismatch")
@@ -870,7 +870,7 @@ test_rule_data_valid_no_errors if {
 		with ec.oci.blob as _mock_blob_passed
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	not _has_code(results, "test_attestation.rule_data_provided")
@@ -883,7 +883,7 @@ test_rule_data_invalid_triggers_error if {
 		with ec.oci.blob as _mock_blob_passed
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 		with data.rule_data.supported_test_attestation_results as ["INVALID_VALUE"]
 
@@ -901,7 +901,7 @@ test_custom_failed_results if {
 		with ec.oci.blob as _mock_blob_warned
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 		with data.rule_data.failed_test_attestation_results as ["WARNED"]
 

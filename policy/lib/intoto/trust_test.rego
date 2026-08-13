@@ -235,7 +235,7 @@ test_verified_statement_happy_path if {
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 1
@@ -277,7 +277,7 @@ test_untrusted_tasks if {
 		with ec.sigstore.verify_attestation as _mock_verify_success
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as no_matching_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as no_matching_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -293,7 +293,7 @@ test_denied_tasks if {
 		with ec.sigstore.verify_attestation as _mock_verify_success
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as deny_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as deny_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -305,7 +305,7 @@ test_empty_tasks_vacuous_truth_guard if {
 		with ec.sigstore.verify_attestation as _mock_verify_empty_tasks
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -317,7 +317,7 @@ test_bundleless_tasks if {
 		with ec.sigstore.verify_attestation as _mock_verify_bundleless_tasks
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -330,7 +330,7 @@ test_multiple_statements_mixed if {
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.blob as _mock_blob_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 1
@@ -345,7 +345,7 @@ test_verified_statements_by_predicate if {
 		with ec.oci.image_manifest as _mock_image_manifest_multi
 		with ec.oci.blob as _mock_blob_multi
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 1
@@ -359,7 +359,7 @@ test_mixed_bundle_and_inline_tasks if {
 		with ec.sigstore.verify_attestation as _mock_verify_mixed_bundle_inline
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -372,7 +372,7 @@ test_existential_attestation_matching if {
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 1
@@ -385,7 +385,7 @@ test_unrecognized_statement_type if {
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.blob as _mock_blob_unknown_type
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -398,7 +398,7 @@ test_malformed_blob if {
 		with ec.oci.image_manifest as _mock_image_manifest
 		with ec.oci.blob as _mock_blob_malformed
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
@@ -410,7 +410,7 @@ test_provenance_subject_digest_mismatch if {
 		with ec.sigstore.verify_attestation as _mock_verify_wrong_subject
 		with ec.oci.blob as _mock_blob
 		with ec.oci.image_manifests as _mock_manifests
-		with data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 0
