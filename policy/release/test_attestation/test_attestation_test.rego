@@ -107,7 +107,7 @@ _mock_image_manifest_multi(ref) := {"layers": [{"digest": _layer_digest_2}]} if 
 }
 
 _make_statement(predicate) := json.marshal({
-	"_type": "https://in-toto.io/Statement/v1",
+	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
 	"predicate": predicate,
@@ -273,7 +273,7 @@ _mock_blob_no_config(_) := _make_statement({
 
 # Test Case 13: non-string result value
 _mock_blob_non_string_result(_) := json.marshal({
-	"_type": "https://in-toto.io/Statement/v1",
+	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
 	"predicate": {
@@ -568,7 +568,7 @@ test_non_string_result if {
 # --- Test Case 14: Missing predicate field ---
 
 _mock_blob_missing_predicate(_) := json.marshal({
-	"_type": "https://in-toto.io/Statement/v1",
+	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
 })
@@ -798,7 +798,7 @@ test_non_informative_test_still_denies if {
 # --- Subject validation (AC-5) ---
 
 _mock_blob_wrong_subject(_) := json.marshal({
-	"_type": "https://in-toto.io/Statement/v1",
+	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/other-image", "digest": {"sha256": "wrong999"}}],
 	"predicate": {
@@ -835,7 +835,7 @@ test_subject_match_passes if {
 }
 
 _mock_blob_no_subject(_) := json.marshal({
-	"_type": "https://in-toto.io/Statement/v1",
+	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"predicate": {
 		"result": "PASSED",
