@@ -83,7 +83,7 @@ Rego is a declarative policy language (Datalog-inspired), not imperative code:
 - **Add a pipeline policy rule:** follow the pattern in `policy/pipeline/required_tasks.rego`
 - **Add a shared library function:** see `policy/lib/tekton/` for reference implementation (must have test coverage)
 - **Fetch and parse an OCI blob:** use `oci.parsed_blob(ref)` from `data.lib.oci`, not `json.unmarshal(ec.oci.blob(ref))` directly. A Regal lint rule (`prefer-parsed-blob`) enforces this
-- **Add a new collection:** follow the pattern in `policy/release/collection/` — import specific policy packages
+- **Add a new collection:** `policy/*/collection/<name>/` — metadata-only definition file. No new tests needed for the collection itself; the CLI repo tests collection filtering and `make conventions-check` validates dependency-collection superset constraints. If new rules are added alongside the collection, those rules need `_test.rego` coverage as usual
 
 ## Review Checklist for New Policy Rules
 
