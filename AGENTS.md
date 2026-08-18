@@ -47,9 +47,11 @@ Every policy rule requires METADATA annotations. Missing or malformed annotation
 
 ## Architecture (design rationale and non-obvious parts)
 
-**Collections** (`policy/*/collection/`) group related rules. Examples: `minimal` (basic validation),
-`slsa3` (SLSA Level 3), `redhat` (Red Hat-specific). New rules declare membership via the
-`collections:` key in their METADATA annotation — see existing rules in `policy/release/` for the pattern.
+**Collections** (`policy/*/collection/`) group related rules. Collection files are minimal package
+declarations (e.g., `package collection.minimal`) — they do not import policy packages. Rules declare
+their own collection membership via a `collections:` list in their METADATA `custom:` annotations
+(see `policy/release/attestation_type/attestation_type.rego` for the pattern). Examples: `minimal`
+(basic validation), `slsa3` (SLSA Level 3), `redhat` (Red Hat-specific).
 
 **SLSA dual-format:** The library in `policy/lib/tekton/` normalizes both SLSA v0.2 and v1.0
 attestation formats. Policies consume the normalized form — don't branch on SLSA version in rules.
@@ -83,7 +85,7 @@ Rego is a declarative policy language (Datalog-inspired), not imperative code:
 - **Add a pipeline policy rule:** follow the pattern in `policy/pipeline/required_tasks.rego`
 - **Add a shared library function:** see `policy/lib/tekton/` for reference implementation (must have test coverage)
 - **Fetch and parse an OCI blob:** use `oci.parsed_blob(ref)` from `data.lib.oci`, not `json.unmarshal(ec.oci.blob(ref))` directly. A Regal lint rule (`prefer-parsed-blob`) enforces this
-- **Add a new collection:** `policy/*/collection/<name>/` — metadata-only definition file. No new tests needed for the collection itself; the CLI repo tests collection filtering and `make conventions-check` validates dependency-collection superset constraints. If new rules are added alongside the collection, those rules need `_test.rego` coverage as usual
+- **Add a new collection:** `policy/*/collection/<name>/` — a minimal package declaration (no imports needed). No new tests needed for the collection itself; the CLI repo tests collection filtering and `make conventions-check` validates dependency-collection superset constraints. If new rules are added alongside the collection, those rules need `_test.rego` coverage as usual
 
 ## Review Checklist for New Policy Rules
 
