@@ -38,6 +38,14 @@ rule_data:
     rh-release:
       public_key: "k8s://openshift-pipelines/release-signing-key"
       ignore_rekor: true
+    # Add an "sbom" identity to gate SBOM discovery via OCI referrers and
+    # image-tag refs: SBOMs are only accepted when their signatures verify
+    # against it, and excluded (fail-closed) when it is absent. Left
+    # unconfigured by default; uncomment and set to your signing key to
+    # enable, for example:
+    # sbom:
+    #   public_key: "k8s://openshift-pipelines/release-signing-key"
+    #   ignore_rekor: true
 
   # Usage: https://conforma.dev/docs/policy/packages/task_step_image_registries.html
   allowed_step_image_registry_prefixes:

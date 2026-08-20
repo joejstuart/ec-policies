@@ -203,6 +203,8 @@ test_cyclonedx_sboms_from_referrers if {
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
 		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 # Test SPDX SBOM discovery via OCI Referrers API
@@ -222,6 +224,8 @@ test_spdx_sboms_from_referrers if {
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
 		with ec.oci.blob as mock_ec_oci_spdx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 # Test CycloneDX SBOM discovery via legacy tag-based conventions (.sbom suffix)
@@ -237,6 +241,8 @@ test_cyclonedx_sboms_from_tag_refs if {
 		with ec.oci.image_tag_refs as mock_tag_refs
 		with ec.oci.image_manifest as _mock_sbom_manifest
 		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 # Test SPDX SBOM discovery via legacy tag-based conventions (.sbom suffix)
@@ -249,6 +255,8 @@ test_spdx_sboms_from_tag_refs if {
 		with ec.oci.image_tag_refs as mock_tag_refs
 		with ec.oci.image_manifest as _mock_sbom_manifest
 		with ec.oci.blob as mock_ec_oci_spdx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 # Test no SBOMs from referrers when artifact types don't match
@@ -266,6 +274,8 @@ test_no_sboms_from_unrelated_referrers if {
 		with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 # Test no SBOMs from tag refs when no .sbom suffix present
@@ -278,6 +288,8 @@ test_no_sboms_from_non_sbom_tag_refs if {
 		with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as []
 		with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
 _mock_sbom_manifest := {"layers": [{
@@ -518,3 +530,287 @@ test_golang_regular_package_not_rejected_as_local if {
 	parsed_purl := {"type": "golang", "name": "adep", "version": "v0.0.1", "qualifiers": []}
 	not sbom._is_local_gomod_dep(parsed_purl)
 }
+
+# --- SBOM signature verification tests ---
+
+# Referrer SBOM excluded when signature verification fails
+test_referrer_sbom_excluded_when_verification_fails if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	assertions.assert_equal(sbom.all_sboms, []) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+}
+
+# Tag-ref SBOM excluded when signature verification fails
+test_tag_ref_sbom_excluded_when_verification_fails if {
+	mock_tag_refs := ["registry.io/repository/image:sha256-284e3029.sbom"]
+	assertions.assert_equal(sbom.all_sboms, []) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.oci.image_manifest as _mock_sbom_manifest
+		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+}
+
+# Referrer SBOM excluded when no "sbom" signing identity configured (default)
+test_referrer_sbom_excluded_when_no_opts if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+
+	# No "sbom" signing identity configured: SBOMs excluded even though the
+	# verify mock would succeed. The absent identity triggers fail-closed behavior.
+	assertions.assert_equal(sbom.all_sboms, []) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data as {}
+}
+
+# Tag-ref SBOM excluded when no "sbom" signing identity configured (default)
+test_tag_ref_sbom_excluded_when_no_opts if {
+	mock_tag_refs := ["registry.io/repository/image:sha256-284e3029.sbom"]
+	assertions.assert_equal(sbom.all_sboms, []) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.oci.image_manifest as _mock_sbom_manifest
+		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data as {}
+}
+
+# Keyless verification: certificate_identity + OIDC issuer, no public_key
+test_keyless_sbom_verification if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	keyless_opts := {
+		"certificate_identity": "builder@example.com",
+		"certificate_oidc_issuer": "https://accounts.example.com",
+		"rekor_url": "https://rekor.example.com",
+	}
+	expected := [{"sbom": "from oci blob", "bomFormat": "CycloneDX"}]
+	assertions.assert_equal(sbom.cyclonedx_sboms, expected) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.oci.blob as mock_ec_oci_cyclonedx_blob
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": keyless_opts}}
+}
+
+# Trusted paths (input.attestations and pipelinerun SBOM_BLOB_URL) are
+# unaffected by the "sbom" signing identity -- they work regardless of whether
+# an identity is configured, since they don't go through the verified wrappers.
+test_trusted_paths_unaffected_by_sbom_opts if {
+	attestations := [{"statement": {
+		"predicateType": "https://cyclonedx.org/bom",
+		"predicate": {"bomFormat": "CycloneDX", "from": "attestation"},
+	}}]
+
+	# No "sbom" signing identity configured; trusted path SBOMs still accepted.
+	expected := [{"bomFormat": "CycloneDX", "from": "attestation"}]
+	assertions.assert_equal(sbom.cyclonedx_sboms, expected) with input.attestations as attestations
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+}
+
+# --- Tests for the "sbom" signing identity validation ---
+
+# A valid key-based identity produces no signing_identities.sbom errors.
+test_sbom_identity_valid_public_key if {
+	opts := {"public_key": "key", "ignore_rekor": true}
+	errors := sbom.rule_data_errors with data.rule_data__configuration__ as {"signing_identities": {"sbom": opts}}
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	count(_sbom_identity_errors(errors)) == 0
+}
+
+# A valid keyless identity produces no signing_identities.sbom errors.
+test_sbom_identity_valid_keyless if {
+	opts := {
+		"certificate_identity": "id@example.com",
+		"certificate_oidc_issuer": "https://accounts.example.com",
+		"rekor_url": "https://rekor.example.com",
+	}
+	errors := sbom.rule_data_errors with data.rule_data__configuration__ as {"signing_identities": {"sbom": opts}}
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	count(_sbom_identity_errors(errors)) == 0
+}
+
+# When no "sbom" identity is configured, validation is silent (fail-closed).
+test_sbom_identity_absent_no_errors if {
+	errors := sbom.rule_data_errors with data.rule_data as {}
+		with data.rule_data__configuration__ as {}
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	count(_sbom_identity_errors(errors)) == 0
+}
+
+# An incomplete identity is rejected by the shared sigstore validator.
+test_sbom_identity_incomplete_errors if {
+	opts := {"public_key": "key"}
+	errors := sbom.rule_data_errors with data.rule_data__configuration__ as {"signing_identities": {"sbom": opts}}
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	count(_sbom_identity_errors(errors)) > 0
+}
+
+# A non-object entry is reported as a malformed identity.
+test_sbom_identity_not_an_object if {
+	errors := sbom.rule_data_errors with data.rule_data__configuration__ as {"signing_identities": {"sbom": "not-an-object"}}
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	matching := {e | some e in errors; contains(e.message, "has unexpected format: expected an object")}
+	count(matching) == 1
+}
+
+# The "sbom" identity is optional: a configured map without it produces no
+# "missing key" warning (unlike the required rh-release identity).
+test_sbom_identity_missing_key_silent if {
+	d := {"signing_identities": {"rh-release": {"public_key": "key", "ignore_rekor": true}}}
+	errors := sbom.rule_data_errors with data.rule_data__configuration__ as d
+		with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	matching := {e | some e in errors; contains(e.message, "does not contain the expected key")}
+	count(matching) == 0
+}
+
+_sbom_identity_errors(errors) := {e | some e in errors; contains(e.message, "signing_identities.sbom")}
+
+# --- Tests for signature_verification_errors ---
+
+test_verification_error_surfaced_for_referrers if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+	count(errors) == 1
+	some error in errors
+	contains(error, "SBOM referrer signature verification failed")
+}
+
+test_verification_error_surfaced_for_tag_refs if {
+	mock_tag_refs := ["registry.io/repository/image:sha256-abc123.sbom"]
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+	count(errors) == 1
+	some error in errors
+	contains(error, "SBOM tag ref signature verification failed")
+}
+
+test_no_verification_errors_when_verify_succeeds if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_success
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+	count(errors) == 0
+}
+
+test_unrelated_referrer_excluded_from_verification_errors if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.dev.cosign.simplesigning.v1+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+	count(errors) == 0
+}
+
+test_no_verification_errors_when_no_opts if {
+	mock_referrers := [{
+		"mediaType": "application/vnd.oci.image.manifest.v1+json",
+		"size": 100,
+		# regal ignore:line-length
+		"digest": "sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+		"artifactType": "application/vnd.cyclonedx+json",
+		# regal ignore:line-length
+		"ref": "registry.io/repository/image@sha256:a1b2c3d400000000000000000000000000000000000000000000000a1b2c3d4",
+	}]
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as mock_referrers
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with data.rule_data as {}
+	count(errors) == 0
+}
+
+_mock_sbom_opts := {"public_key": "test-signing-key", "ignore_rekor": true}
+
+_mock_verify_image_success(_, _) := {"errors": []}
+
+_mock_verify_image_failure(_, _) := {"errors": ["verification failed"]}

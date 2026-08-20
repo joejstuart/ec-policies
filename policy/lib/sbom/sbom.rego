@@ -6,6 +6,7 @@ import data.lib.rule_data
 import data.lib.image
 import data.lib.json as j
 import data.lib.oci
+import data.lib.sigstore
 import data.lib.tekton
 import rego.v1
 
@@ -81,19 +82,20 @@ _fetch_pipelinerun_sbom contains sbom if {
 # using the OCI Referrers API and legacy tag-based discovery.
 _fetch_sboms_from_image := _sboms_from_referrers | _sboms_from_tag_refs
 
-# Discover SBOMs via OCI Referrers API. Referrers with recognized SBOM artifact types
-# have their content fetched and parsed.
+# Discover SBOMs via OCI Referrers API. Only referrers whose signatures
+# verify against the configured "sbom" signing identity are included. When
+# no such identity is configured, no referrer SBOMs are accepted (fail-closed).
 _sboms_from_referrers contains sbom if {
-	some referrer in ec.oci.image_referrers(input.image.ref)
+	some referrer in oci.verified_image_referrers(input.image.ref, _sbom_signing_identity)
 	referrer.artifactType in _sbom_artifact_types
 	sbom := oci.parsed_blob(referrer.ref)
 }
 
 # Discover SBOMs via legacy cosign tag-based conventions (.sbom suffix).
-# Tag refs point to OCI images, so we fetch the manifest and extract the
-# blob from its first layer using parsed_blob_from_image.
+# Only tag refs whose signatures verify against the configured "sbom" signing
+# identity are included (fail-closed when no such identity is configured).
 _sboms_from_tag_refs contains sbom if {
-	some ref in ec.oci.image_tag_refs(input.image.ref)
+	some ref in oci.verified_image_tag_refs(input.image.ref, _sbom_signing_identity)
 	endswith(ref, ".sbom")
 	sbom := oci.parsed_blob_from_image(ref)
 }
@@ -497,6 +499,40 @@ rule_data_errors contains error if {
 		),
 		"severity": "warning",
 	}
+}
+
+# Validate the "sbom" signing identity rule data (map shape, entry shape, and
+# verification config) using the shared sigstore helper. The identity is
+# optional: absent identities are silently fail-closed (there is no legacy
+# config to migrate), so no "missing key" warning is emitted.
+rule_data_errors contains error if {
+	some error in sigstore.optional_identity_rule_data_errors(_sbom_identity_name)
+}
+
+# _sbom_identity_name is the key of the SBOM signing identity within the
+# signing_identities rule data.
+_sbom_identity_name := "sbom"
+
+# _sbom_signing_identity is the named entry in the signing_identities rule
+# data used to verify SBOMs discovered via OCI referrers and image-tag refs.
+# It is undefined (fail-closed, silent) when no such identity is configured.
+_sbom_signing_identity := sigstore.named_identity(_sbom_identity_name)
+
+# Collect SBOM signature verification errors for observability. Fail-closed
+# exclusion happens in the verified_* wrappers; this surfaces WHY an SBOM
+# was excluded, using the failures API to avoid duplicate builtin calls.
+signature_verification_errors contains error if {
+	some result in oci.image_referrer_failures(input.image.ref, _sbom_signing_identity)
+	result.item.artifactType in _sbom_artifact_types
+	some raw_error in result.errors
+	error := sprintf("SBOM referrer signature verification failed for %s: %s", [result.item.ref, raw_error])
+}
+
+signature_verification_errors contains error if {
+	some result in oci.image_tag_ref_failures(input.image.ref, _sbom_signing_identity)
+	endswith(result.item, ".sbom")
+	some raw_error in result.errors
+	error := sprintf("SBOM tag ref signature verification failed for %s: %s", [result.item, raw_error])
 }
 
 # disallowed_attribute_excepted checks if the package's PURL has a qualifier

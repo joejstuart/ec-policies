@@ -109,6 +109,7 @@
 *** xref:packages/release_sbom.adoc[SBOM]
 **** xref:packages/release_sbom.adoc#sbom__disallowed_packages_provided[Disallowed packages list is provided]
 **** xref:packages/release_sbom.adoc#sbom__found[Found]
+**** xref:packages/release_sbom.adoc#sbom__signature_verification[SBOM signature verification failed]
 *** xref:packages/release_sbom_cyclonedx.adoc[SBOM CycloneDX]
 **** xref:packages/release_sbom_cyclonedx.adoc#sbom_cyclonedx__allowed[Allowed]
 **** xref:packages/release_sbom_cyclonedx.adoc#sbom_cyclonedx__allowed_package_external_references[Allowed package external references]
