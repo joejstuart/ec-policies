@@ -106,11 +106,13 @@ _mock_image_manifest_multi(ref) := {"layers": [{"digest": _layer_digest_2}]} if 
 	contains(ref, "stmt000000000000000000000000000000000000000000000000000000000002")
 }
 
+_default_timestamp := "2025-01-01T00:00:00Z"
+
 _make_statement(predicate) := json.marshal({
 	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
-	"predicate": predicate,
+	"predicate": object.union(predicate, {"timestamp": _default_timestamp}),
 })
 
 # Package-level mock blob functions for each test scenario
@@ -279,6 +281,7 @@ _mock_blob_non_string_result(_) := json.marshal({
 	"predicate": {
 		"result": 42,
 		"configuration": [{"name": "bad-producer"}],
+		"timestamp": _default_timestamp,
 	},
 })
 
@@ -571,6 +574,7 @@ _mock_blob_missing_predicate(_) := json.marshal({
 	"_type": "https://in-toto.io/Statement/v0.1",
 	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
 	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
+	"predicate": {"timestamp": _default_timestamp},
 })
 
 test_missing_predicate if {
@@ -804,6 +808,7 @@ _mock_blob_wrong_subject(_) := json.marshal({
 	"predicate": {
 		"result": "PASSED",
 		"configuration": [{"name": "mismatched-test"}],
+		"timestamp": _default_timestamp,
 	},
 })
 
@@ -840,6 +845,7 @@ _mock_blob_no_subject(_) := json.marshal({
 	"predicate": {
 		"result": "PASSED",
 		"configuration": [{"name": "no-subject-test"}],
+		"timestamp": _default_timestamp,
 	},
 })
 
@@ -907,4 +913,194 @@ test_custom_failed_results if {
 
 	some r in results
 	r.code == "test_attestation.no_failed_tests"
+}
+
+# =============================================================================
+# DEDUP TESTS: EC-2082
+# =============================================================================
+
+_make_statement_with_ts(predicate, ts) := json.marshal({
+	"_type": "https://in-toto.io/Statement/v1",
+	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
+	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
+	"predicate": object.union(predicate, {"timestamp": ts}),
+})
+
+_make_statement_no_ts(predicate) := json.marshal({
+	"_type": "https://in-toto.io/Statement/v1",
+	"predicateType": "https://in-toto.io/attestation/test-result/v0.1",
+	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
+	"predicate": predicate,
+})
+
+# --- Dedup: latest PASSED supersedes older FAILED (same test name) ---
+
+_mock_blob_dedup_latest_passed(ref) := _make_statement_with_ts(
+	{
+		"result": "FAILED",
+		"configuration": [{"name": "clair-scan"}],
+		"failures": 1,
+	},
+	"2025-01-01T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000001")
+}
+
+_mock_blob_dedup_latest_passed(ref) := _make_statement_with_ts(
+	{
+		"result": "PASSED",
+		"configuration": [{"name": "clair-scan"}],
+		"successes": 1,
+		"failures": 0,
+	},
+	"2025-01-02T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000002")
+}
+
+test_dedup_latest_passed_supersedes_older_failed if {
+	assertions.assert_empty(test_attestation.deny) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_two
+		with ec.sigstore.verify_attestation as _mock_verify_two
+		with ec.oci.blob as _mock_blob_dedup_latest_passed
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+
+	assertions.assert_empty(test_attestation.warn) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_two
+		with ec.sigstore.verify_attestation as _mock_verify_two
+		with ec.oci.blob as _mock_blob_dedup_latest_passed
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+}
+
+# --- Dedup: latest FAILED supersedes older PASSED (same test name) ---
+
+_mock_blob_dedup_latest_failed(ref) := _make_statement_with_ts(
+	{
+		"result": "PASSED",
+		"configuration": [{"name": "clair-scan"}],
+		"successes": 1,
+		"failures": 0,
+	},
+	"2025-01-01T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000001")
+}
+
+_mock_blob_dedup_latest_failed(ref) := _make_statement_with_ts(
+	{
+		"result": "FAILED",
+		"configuration": [{"name": "clair-scan"}],
+		"failures": 1,
+	},
+	"2025-01-02T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000002")
+}
+
+test_dedup_latest_failed_supersedes_older_passed if {
+	assertions.assert_equal_results(test_attestation.deny, {{
+		"code": "test_attestation.no_failed_tests",
+		"msg": "Test attestation \"clair-scan\" has a failed result, failures: 1",
+		"term": "clair-scan",
+	}}) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_two
+		with ec.sigstore.verify_attestation as _mock_verify_two
+		with ec.oci.blob as _mock_blob_dedup_latest_failed
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+}
+
+# --- Dedup: different test names are independent ---
+
+_mock_blob_dedup_diff_names(ref) := _make_statement_with_ts(
+	{
+		"result": "FAILED",
+		"configuration": [{"name": "clair-scan"}],
+		"failures": 1,
+	},
+	"2025-01-01T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000001")
+}
+
+_mock_blob_dedup_diff_names(ref) := _make_statement_with_ts(
+	{
+		"result": "FAILED",
+		"configuration": [{"name": "sanity-check"}],
+		"failures": 1,
+	},
+	"2025-01-02T00:00:00Z",
+) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000002")
+}
+
+test_dedup_different_test_names_independent if {
+	results := test_attestation.deny with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_two
+		with ec.sigstore.verify_attestation as _mock_verify_two
+		with ec.oci.blob as _mock_blob_dedup_diff_names
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+
+	count(results) == 2
+	deny_terms := {r.term | some r in results}
+	assertions.assert_equal(deny_terms, {"clair-scan", "sanity-check"})
+}
+
+# --- Dedup: attestation without timestamp is excluded ---
+
+_mock_blob_dedup_no_ts(_) := _make_statement_no_ts({
+	"result": "FAILED",
+	"configuration": [{"name": "clair-scan"}],
+	"failures": 1,
+})
+
+test_dedup_no_timestamp_excluded if {
+	assertions.assert_empty(test_attestation.deny) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers
+		with ec.sigstore.verify_attestation as _mock_verify_success
+		with ec.oci.blob as _mock_blob_dedup_no_ts
+		with ec.oci.image_manifest as _mock_image_manifest
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+}
+
+# --- Dedup: all attestations for a test name lack timestamps ---
+
+_mock_blob_dedup_all_no_ts(ref) := _make_statement_no_ts({
+	"result": "FAILED",
+	"configuration": [{"name": "clair-scan"}],
+	"failures": 1,
+}) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000001")
+}
+
+_mock_blob_dedup_all_no_ts(ref) := _make_statement_no_ts({
+	"result": "PASSED",
+	"configuration": [{"name": "clair-scan"}],
+	"successes": 1,
+}) if {
+	contains(ref, "1a0e000000000000000000000000000000000000000000000000000000000002")
+}
+
+test_dedup_all_missing_timestamps_excluded if {
+	assertions.assert_empty(test_attestation.deny) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_two
+		with ec.sigstore.verify_attestation as _mock_verify_two
+		with ec.oci.blob as _mock_blob_dedup_all_no_ts
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
 }
