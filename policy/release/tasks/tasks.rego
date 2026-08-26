@@ -21,6 +21,10 @@
 #   in square brackets following the name of the task. For example: name[PARAM=val].
 #   Only single parameter is supported, to assert multiple parameters repeat the
 #   required task definition for each parameter seperately.
+#   The optional required-test-tasks key uses the same time-gated format and is
+#   satisfied by tasks discovered in either the build PipelineRun or trusted ITS
+#   PipelineRuns associated with the image. When omitted, test-task enforcement
+#   is disabled.
 #
 #
 package tasks
@@ -32,6 +36,7 @@ import data.lib.json as j
 import data.lib.metadata
 import data.lib.sets
 import data.lib.tekton
+import data.lib.time as ectime
 
 # Batch fetch all manifests for tasks in the pipelineRun attestation
 _manifests := ec.oci.image_manifests(lib.pipelinerun_bundle_refs)
@@ -84,6 +89,37 @@ warn contains result if {
 	result := metadata.result_helper_with_term(
 		rego.metadata.chain(),
 		[_format_missing(required_task, true), tekton.task_effective_on(latest_required_tasks, required_task)],
+		required_task,
+	)
+}
+
+# METADATA
+# title: Future required test tasks were found
+# description: >-
+#   Produce a warning when a test task that will be required in the future
+#   was not included in either the build or ITS PipelineRun attestations.
+# custom:
+#   short_name: future_required_test_tasks_found
+#   failure_msg: '%s is missing and will be required on %s'
+#   solution: >-
+#     Ensure the test task runs in either the build pipeline or an Integration
+#     Test Service pipeline associated with the image.
+#   collections:
+#   - redhat
+#   - redhat_security
+#   depends_on:
+#   - attestation_type.known_attestation_type
+#   effective_on: 2026-10-01T00:00:00Z
+#
+warn contains result if {
+	some required_task in _missing_test_tasks(latest_required_test_tasks.tasks)
+	not required_task in current_required_test_tasks.tasks
+	result := metadata.result_helper_with_term(
+		rego.metadata.chain(),
+		[
+			_format_missing(required_task, true),
+			tekton.task_effective_on(latest_required_test_tasks, required_task),
+		],
 		required_task,
 	)
 }
@@ -167,6 +203,34 @@ deny contains result if {
 
 	# Don't report an error if a task is required now, but not in the future
 	required_task in latest_required_tasks.tasks
+	result := metadata.result_helper_with_term(
+		rego.metadata.chain(),
+		[_format_missing(required_task, false)],
+		required_task,
+	)
+}
+
+# METADATA
+# title: All required test tasks were included in a pipeline
+# description: >-
+#   Ensure that every currently required test task is included in either the
+#   build PipelineRun or a trusted ITS PipelineRun associated with the image.
+# custom:
+#   short_name: required_test_tasks_found
+#   failure_msg: '%s is missing'
+#   solution: >-
+#     Ensure the required test task runs in either the build pipeline or an
+#     Integration Test Service pipeline associated with the image.
+#   collections:
+#   - redhat
+#   - redhat_security
+#   depends_on:
+#   - attestation_type.known_attestation_type
+#   effective_on: 2026-10-01T00:00:00Z
+#
+deny contains result if {
+	some required_task in _missing_test_tasks(current_required_test_tasks.tasks)
+
 	result := metadata.result_helper_with_term(
 		rego.metadata.chain(),
 		[_format_missing(required_task, false)],
@@ -309,7 +373,7 @@ deny contains result if {
 # title: Data provided
 # description: >-
 #   Confirm the expected data keys have been provided in the expected format. The keys are
-#   `pipeline-required-tasks` and `required-tasks`.
+#   `pipeline-required-tasks`, `required-tasks`, and `required-test-tasks`.
 # custom:
 #   short_name: data_provided
 #   failure_msg: '%s'
@@ -341,6 +405,13 @@ _missing_tasks(required_tasks) := {task |
 
 	some required_task in required_tasks
 	some task in _any_missing(required_task, tasks_in_user_pipeline)
+}
+
+# _missing_test_tasks compares required test-task entries with every normalized
+# task name discovered from the build and trusted ITS PipelineRuns.
+_missing_test_tasks(required_tasks) := {task |
+	some required_task in required_tasks
+	some task in _any_missing(required_task, lib.discovered_task_names)
 }
 
 _any_missing(required, tasks) := missing if {
@@ -387,6 +458,14 @@ current_required_tasks := task_data if {
 } else := task_data if {
 	task_data := tekton.current_required_default_tasks
 }
+
+default latest_required_test_tasks := {"tasks": []}
+
+latest_required_test_tasks := ectime.newest(data["required-test-tasks"])
+
+default current_required_test_tasks := {"tasks": []}
+
+current_required_test_tasks := ectime.most_current(data["required-test-tasks"])
 
 ## get the required task data for a pipeline with a label
 required_pipeline_task_data := task_data if {
@@ -468,12 +547,37 @@ _data_errors contains error if {
 }
 
 _data_errors contains error if {
+	some e in j.validate_schema(
+		data["required-test-tasks"],
+		_required_tasks_schema,
+	)
+
+	error := {
+		"message": sprintf("Data required-test-tasks has unexpected format: %s", [e.message]),
+		"severity": e.severity,
+	}
+}
+
+_data_errors contains error if {
 	some i, entry in data["required-tasks"]
 	effective_on := entry.effective_on
 	not time.parse_rfc3339_ns(effective_on)
 	error := {
 		"message": sprintf(
 			"required-tasks[%d].effective_on is not valid RFC3339 format: %q",
+			[i, effective_on],
+		),
+		"severity": "failure",
+	}
+}
+
+_data_errors contains error if {
+	some i, entry in data["required-test-tasks"]
+	effective_on := entry.effective_on
+	not time.parse_rfc3339_ns(effective_on)
+	error := {
+		"message": sprintf(
+			"required-test-tasks[%d].effective_on is not valid RFC3339 format: %q",
 			[i, effective_on],
 		),
 		"severity": "failure",

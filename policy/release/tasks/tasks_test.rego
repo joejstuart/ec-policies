@@ -240,6 +240,105 @@ test_future_required_tasks_not_met if {
 		with input.attestations as slsav1_attestations
 }
 
+test_required_test_tasks_met if {
+	assertions.assert_empty(tasks._missing_test_tasks(tasks.current_required_test_tasks.tasks)) with data["required-test-tasks"] as _required_test_tasks
+		with lib.discovered_task_names as {"clair-scan", "sast-snyk-check"}
+
+	assertions.assert_empty(tasks._missing_test_tasks(tasks.latest_required_test_tasks.tasks)) with data["required-test-tasks"] as _required_test_tasks
+		with lib.discovered_task_names as {"clair-scan", "sast-snyk-check"}
+}
+
+test_required_test_task_missing if {
+	matching_denies := {result |
+		some result in tasks.deny
+		result.code == "tasks.required_test_tasks_found"
+	} with data["required-test-tasks"] as _required_test_tasks
+		with lib.discovered_task_names as set()
+	expected := {{
+		"code": "tasks.required_test_tasks_found",
+		"msg": `Required task "clair-scan" is missing`,
+		"term": "clair-scan",
+	}}
+
+	assertions.assert_equal_results(expected, matching_denies)
+	some result in matching_denies
+	result.effective_on == "2026-10-01T00:00:00Z"
+}
+
+test_future_required_test_task_missing if {
+	matching_warns := {result |
+		some result in tasks.warn
+		result.code == "tasks.future_required_test_tasks_found"
+	} with data["required-test-tasks"] as _required_test_tasks
+		with lib.discovered_task_names as {"clair-scan"}
+	expected := {{
+		"code": "tasks.future_required_test_tasks_found",
+		"msg": `Task "sast-snyk-check" is missing and will be required on 2099-01-02T00:00:00Z`,
+		"term": "sast-snyk-check",
+	}}
+
+	assertions.assert_equal_results(expected, matching_warns)
+	some result in matching_warns
+	result.effective_on == "2026-10-01T00:00:00Z"
+}
+
+test_current_required_test_task_is_not_also_future_warning if {
+	matching_warns := {result |
+		some result in tasks.warn
+		result.code == "tasks.future_required_test_tasks_found"
+	} with data["required-test-tasks"] as _required_test_tasks
+		with lib.discovered_task_names as set()
+
+	assertions.assert_equal(
+		{"sast-snyk-check"},
+		{result.term | some result in matching_warns},
+	)
+}
+
+test_current_required_test_task_remains_denied_until_replacement_is_effective if {
+	required_test_tasks := [
+		{
+			"effective_on": "2099-01-02T00:00:00Z",
+			"tasks": ["replacement-test"],
+		},
+		{
+			"effective_on": "2022-01-01T00:00:00Z",
+			"tasks": ["retired-test"],
+		},
+	]
+	matching_denies := {result |
+		some result in tasks.deny
+		result.code == "tasks.required_test_tasks_found"
+	} with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as set()
+	assertions.assert_equal(
+		{"retired-test"},
+		{result.term | some result in matching_denies},
+	)
+	matching_warns := {result |
+		some result in tasks.warn
+		result.code == "tasks.future_required_test_tasks_found"
+	} with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as set()
+	assertions.assert_equal(
+		{"replacement-test"},
+		{result.term | some result in matching_warns},
+	)
+}
+
+test_required_test_tasks_absent_disables_enforcement if {
+	matching_results := {result |
+		some result in (tasks.deny | tasks.warn)
+		result.code in {
+			"tasks.required_test_tasks_found",
+			"tasks.future_required_test_tasks_found",
+		}
+	} with data["required-test-tasks"] as []
+		with lib.discovered_task_names as set()
+
+	assertions.assert_empty(matching_results)
+}
+
 test_extra_tasks_ignored if {
 	attestations := _attestations_with_tasks(_slsav02_expected_future_required_tasks | {"spam"}, [])
 	assertions.assert_empty(tasks.deny) with data["pipeline-required-tasks"] as _required_pipeline_tasks
@@ -962,6 +1061,32 @@ test_data_errors_on_required_tasks if {
 	assertions.assert_equal_results(tasks.deny, expected) with data["required-tasks"] as required_tasks
 }
 
+test_data_errors_on_required_test_tasks if {
+	required_test_tasks := [{
+		"effective_on": "bad-datetime-format",
+		"tasks": [],
+	}]
+	expected := {
+		{
+			"code": "tasks.data_provided",
+			"msg": "Data required-test-tasks has unexpected format: 0.tasks: Array must have at least 1 items",
+			"severity": "failure",
+		},
+		{
+			"code": "tasks.data_provided",
+			"msg": `required-test-tasks[0].effective_on is not valid RFC3339 format: "bad-datetime-format"`,
+			"severity": "failure",
+		},
+	}
+
+	matching_denies := {result |
+		some result in tasks.deny
+		result.code == "tasks.data_provided"
+		contains(result.msg, "required-test-tasks")
+	} with data["required-test-tasks"] as required_test_tasks
+	assertions.assert_equal_results(expected, matching_denies)
+}
+
 test_data_errors_on_pipeline_required_tasks if {
 	# Since pipeline-required-tasks uses the schema for required-tasks, only perform basic tests
 	pipeline_required_tasks := {
@@ -1253,6 +1378,17 @@ _time_based_required_tasks := [
 	{
 		"effective_on": "2022-01-01T00:00:00Z",
 		"tasks": ["ignored"],
+	},
+]
+
+_required_test_tasks := [
+	{
+		"effective_on": "2099-01-02T00:00:00Z",
+		"tasks": ["clair-scan", "sast-snyk-check"],
+	},
+	{
+		"effective_on": "2022-01-01T00:00:00Z",
+		"tasks": ["clair-scan"],
 	},
 ]
 
