@@ -172,6 +172,18 @@ its_pipelinerun_attestations contains provenance if {
 
 tasks_from_its_pipelineruns := tasks_from_attestations(its_pipelinerun_attestations)
 
+task_names_from_tasks(tasks) := {name |
+	some task in tasks
+	some name in tekton.task_names(task)
+}
+
+# All normalized task names discovered across build and ITS PipelineRuns.
+build_pipelinerun_task_names := task_names_from_tasks(tasks_from_pipelinerun)
+
+its_pipelinerun_task_names := task_names_from_tasks(tasks_from_its_pipelineruns)
+
+discovered_task_names := build_pipelinerun_task_names | its_pipelinerun_task_names
+
 _statement_subject_matches_image(statement) if {
 	some subject in object.get(statement, "subject", [])
 	input.image.digest in intoto.subject_digests(subject)

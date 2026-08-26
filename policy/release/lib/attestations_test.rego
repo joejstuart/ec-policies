@@ -224,6 +224,41 @@ test_build_and_its_task_sources_remain_separate if {
 		with intoto.verified_statement_provenances as verified
 }
 
+test_task_names_from_tasks_includes_parameterized_names if {
+	task := tekton_test.with_params(
+		tekton_test.slsav1_task("clair-scan"),
+		[{"name": "MODE", "value": "fast"}],
+	)
+	att := tekton_test.slsav1_attestation([task])
+
+	assertions.assert_equal(
+		{"clair-scan", "clair-scan[MODE=fast]"},
+		lib.task_names_from_tasks(lib.tasks_from_attestations([att])),
+	)
+}
+
+test_discovered_task_names_unions_and_deduplicates_sources if {
+	build_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("clair-scan")])
+	its_att := tekton_test.slsav1_attestation([
+		tekton_test.slsav1_task("clair-scan"),
+		tekton_test.slsav1_task("sast-snyk-check"),
+	])
+	verified := {_verified_statement_provenance("tests", its_att)}
+
+	assertions.assert_equal(
+		{"clair-scan", "sast-snyk-check"},
+		lib.discovered_task_names,
+	) with input.attestations as [build_att]
+		with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
+}
+
+test_discovered_task_names_empty_without_sources if {
+	assertions.assert_empty(lib.discovered_task_names) with input.attestations as []
+		with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as set()
+}
+
 test_slsa_provenance_attestations if {
 	assertions.assert_equal(lib.slsa_provenance_attestations, []) with input.attestations as []
 
