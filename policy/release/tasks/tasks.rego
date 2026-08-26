@@ -585,6 +585,21 @@ _data_errors contains error if {
 }
 
 _data_errors contains error if {
+	some first_index, first in data["required-test-tasks"]
+	some duplicate_index, duplicate in data["required-test-tasks"]
+	first_index < duplicate_index
+	is_string(first.effective_on)
+	first.effective_on == duplicate.effective_on
+	error := {
+		"message": sprintf(
+			"required-test-tasks[%d].effective_on duplicates required-test-tasks[%d].effective_on: %q",
+			[duplicate_index, first_index, first.effective_on],
+		),
+		"severity": "failure",
+	}
+}
+
+_data_errors contains error if {
 	some key, entries in tekton.pipeline_required_tasks
 	some i, entry in entries
 	effective_on := entry.effective_on

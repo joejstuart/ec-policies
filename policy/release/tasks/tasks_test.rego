@@ -1127,6 +1127,26 @@ test_data_errors_on_required_test_tasks if {
 	assertions.assert_equal_results(expected, matching_denies)
 }
 
+test_data_errors_on_duplicate_required_test_task_dates if {
+	required_test_tasks := [
+		{
+			"effective_on": "2099-01-02T00:00:00Z",
+			"tasks": ["first-test"],
+		},
+		{
+			"effective_on": "2099-01-02T00:00:00Z",
+			"tasks": ["second-test"],
+		},
+	]
+	expected := {{
+		"code": "tasks.data_provided",
+		"msg": `required-test-tasks[1].effective_on duplicates required-test-tasks[0].effective_on: "2099-01-02T00:00:00Z"`,
+		"severity": "failure",
+	}}
+
+	assertions.assert_equal_results(tasks.deny, expected) with data["required-test-tasks"] as required_test_tasks
+}
+
 test_data_errors_on_pipeline_required_tasks if {
 	# Since pipeline-required-tasks uses the schema for required-tasks, only perform basic tests
 	pipeline_required_tasks := {
