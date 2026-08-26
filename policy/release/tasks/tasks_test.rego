@@ -326,6 +326,46 @@ test_current_required_test_task_remains_denied_until_replacement_is_effective if
 	)
 }
 
+test_parameterized_required_test_task if {
+	required_test_tasks := [{
+		"effective_on": "2022-01-01T00:00:00Z",
+		"tasks": ["clair-scan[MODE=fast]"],
+	}]
+	missing_satisfied := tasks._missing_test_tasks(tasks.current_required_test_tasks.tasks) with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as {"clair-scan", "clair-scan[MODE=fast]"}
+	assertions.assert_empty(missing_satisfied)
+
+	matching_denies := {result |
+		some result in tasks.deny
+		result.code == "tasks.required_test_tasks_found"
+	} with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as {"clair-scan"}
+	assertions.assert_equal(
+		{"clair-scan[MODE=fast]"},
+		{result.term | some result in matching_denies},
+	)
+}
+
+test_one_of_required_test_tasks if {
+	required_test_tasks := [{
+		"effective_on": "2022-01-01T00:00:00Z",
+		"tasks": [["clair-scan", "sast-snyk-check"]],
+	}]
+	missing_satisfied := tasks._missing_test_tasks(tasks.current_required_test_tasks.tasks) with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as {"sast-snyk-check"}
+	assertions.assert_empty(missing_satisfied)
+
+	matching_denies := {result |
+		some result in tasks.deny
+		result.code == "tasks.required_test_tasks_found"
+	} with data["required-test-tasks"] as required_test_tasks
+		with lib.discovered_task_names as set()
+	assertions.assert_equal(
+		{["clair-scan", "sast-snyk-check"]},
+		{result.term | some result in matching_denies},
+	)
+}
+
 test_required_test_tasks_absent_disables_enforcement if {
 	matching_results := {result |
 		some result in (tasks.deny | tasks.warn)
