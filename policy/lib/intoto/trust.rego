@@ -73,6 +73,9 @@ verified_statements_by_predicate(predicate_type) := {statement |
 	statement.predicateType == predicate_type
 }
 
+# Filter complete {statement, provenance} records by the statement's predicate type.
+# The predicate is only the selector; each result retains the full in-toto statement
+# and its full trusted SLSA provenance attestation.
 verified_statement_provenances_by_predicate(predicate_type) := {result |
 	some result in verified_statement_provenances
 	result.statement.predicateType == predicate_type

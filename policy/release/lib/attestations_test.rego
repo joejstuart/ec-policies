@@ -4,6 +4,8 @@ import rego.v1
 
 import data.lib
 import data.lib.assertions
+import data.lib.intoto
+import data.lib.tekton
 import data.lib.tekton_test
 
 pr_build_type := "tekton.dev/v1beta1/PipelineRun"
@@ -115,6 +117,111 @@ test_tasks_from_pipelinerun if {
 	slsa02_att := att_mock_task_helper(slsa02_task)
 	resolved_slsa02_task := {"name": "my-task", "ref": {"kind": "task"}}
 	assertions.assert_equal([resolved_slsa02_task], lib.tasks_from_pipelinerun) with input.attestations as slsa02_att
+}
+
+_matching_test_statement(name) := {
+	"_type": "https://in-toto.io/Statement/v1",
+	"predicateType": intoto.predicate_test_result,
+	"subject": [{"name": "registry.io/repo/image", "digest": {"sha256": "abc123"}}],
+	"predicate": {"configuration": [{"name": name}]},
+}
+
+_verified_statement_provenance(name, provenance) := {
+	"statement": _matching_test_statement(name),
+	"provenance": provenance,
+}
+
+_task_names(tasks) := {name |
+	some task in tasks
+	name := tekton.task_name(task)
+}
+
+test_tasks_from_attestations_reuses_tekton_normalization if {
+	v1_task := tekton_test.slsav1_task("clair-scan")
+	v1_att := tekton_test.slsav1_attestation([v1_task])
+	lib.is_pipelinerun_attestation(v1_att)
+	v02_att := att_mock_task_helper({
+		"name": "sast-snyk-check",
+		"ref": {"kind": "task", "name": "sast-snyk-check"},
+	})[0]
+	lib.is_pipelinerun_attestation(v02_att)
+
+	assertions.assert_equal(
+		{"clair-scan", "sast-snyk-check"},
+		_task_names(lib.tasks_from_attestations([v1_att, v02_att])),
+	)
+}
+
+test_its_pipelinerun_attestations_retain_all_matching_pipelines if {
+	clair_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("clair-scan")])
+	sast_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("sast-snyk-check")])
+	verified := {
+		_verified_statement_provenance("clair-scan", clair_att),
+		_verified_statement_provenance("sast-snyk-check", sast_att),
+	}
+
+	assertions.assert_equal(
+		{clair_att, sast_att},
+		lib.its_pipelinerun_attestations,
+	) with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
+
+	assertions.assert_equal(
+		{"clair-scan", "sast-snyk-check"},
+		_task_names(lib.tasks_from_its_pipelineruns),
+	) with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
+}
+
+test_its_pipelinerun_attestations_filter_unrelated_sources if {
+	its_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("clair-scan")])
+	taskrun_att := json.patch(its_att, [{
+		"op": "replace",
+		"path": "/statement/predicate/buildDefinition/buildType",
+		"value": lib.tekton_task_run,
+	}])
+	wrong_subject := json.patch(_matching_test_statement("wrong-subject"), [{
+		"op": "replace",
+		"path": "/subject/0/digest/sha256",
+		"value": "def456",
+	}])
+	non_test_statement := json.patch(_matching_test_statement("not-a-test-result"), [{
+		"op": "replace",
+		"path": "/predicateType",
+		"value": intoto.predicate_vuln_scan,
+	}])
+	verified := {
+		_verified_statement_provenance("clair-scan", its_att),
+		{"statement": wrong_subject, "provenance": its_att},
+		{"statement": non_test_statement, "provenance": its_att},
+		_verified_statement_provenance("taskrun", taskrun_att),
+	}
+
+	assertions.assert_equal(
+		{its_att},
+		lib.its_pipelinerun_attestations,
+	) with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
+}
+
+test_build_and_its_task_sources_remain_separate if {
+	build_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("buildah")])
+	its_att := tekton_test.slsav1_attestation([tekton_test.slsav1_task("clair-scan")])
+	verified := {_verified_statement_provenance("clair-scan", its_att)}
+
+	assertions.assert_equal(
+		{"buildah"},
+		_task_names(lib.tasks_from_pipelinerun),
+	) with input.attestations as [build_att]
+		with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
+
+	assertions.assert_equal(
+		{"clair-scan"},
+		_task_names(lib.tasks_from_its_pipelineruns),
+	) with input.attestations as [build_att]
+		with input.image.digest as "sha256:abc123"
+		with intoto.verified_statement_provenances as verified
 }
 
 test_slsa_provenance_attestations if {
