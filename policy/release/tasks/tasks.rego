@@ -588,8 +588,9 @@ _data_errors contains error if {
 	some first_index, first in data["required-test-tasks"]
 	some duplicate_index, duplicate in data["required-test-tasks"]
 	first_index < duplicate_index
-	is_string(first.effective_on)
-	first.effective_on == duplicate.effective_on
+	first_effective_on_ns := time.parse_rfc3339_ns(first.effective_on)
+	duplicate_effective_on_ns := time.parse_rfc3339_ns(duplicate.effective_on)
+	first_effective_on_ns == duplicate_effective_on_ns
 	error := {
 		"message": sprintf(
 			"required-test-tasks[%d].effective_on duplicates required-test-tasks[%d].effective_on: %q",

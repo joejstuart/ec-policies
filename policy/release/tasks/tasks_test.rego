@@ -1130,17 +1130,17 @@ test_data_errors_on_required_test_tasks if {
 test_data_errors_on_duplicate_required_test_task_dates if {
 	required_test_tasks := [
 		{
-			"effective_on": "2099-01-02T00:00:00Z",
+			"effective_on": "2099-01-02T00:00:00-01:00",
 			"tasks": ["first-test"],
 		},
 		{
-			"effective_on": "2099-01-02T00:00:00Z",
+			"effective_on": "2099-01-02T01:00:00Z",
 			"tasks": ["second-test"],
 		},
 	]
 	expected := {{
 		"code": "tasks.data_provided",
-		"msg": `required-test-tasks[1].effective_on duplicates required-test-tasks[0].effective_on: "2099-01-02T00:00:00Z"`,
+		"msg": `required-test-tasks[1].effective_on duplicates required-test-tasks[0].effective_on: "2099-01-02T00:00:00-01:00"`,
 		"severity": "failure",
 	}}
 
