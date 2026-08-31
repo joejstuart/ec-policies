@@ -588,6 +588,9 @@ _data_errors contains error if {
 	some first_index, first in data["required-test-tasks"]
 	some duplicate_index, duplicate in data["required-test-tasks"]
 	first_index < duplicate_index
+
+	# Equivalent RFC3339 timestamps can use different offsets or precision, so
+	# compare their instants rather than their string representations.
 	first_effective_on_ns := time.parse_rfc3339_ns(first.effective_on)
 	duplicate_effective_on_ns := time.parse_rfc3339_ns(duplicate.effective_on)
 	first_effective_on_ns == duplicate_effective_on_ns

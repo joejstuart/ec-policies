@@ -56,6 +56,8 @@ most_current(items) := item if {
 
 # newest returns the item with the latest `effective_on` instant.
 newest(items) := item if {
+	# RFC3339 strings with different offsets or fractional precision do not sort
+	# chronologically, so normalize them to instants before comparing them.
 	timestamped := [{
 		"effective_on_ns": time.parse_rfc3339_ns(candidate.effective_on),
 		"item": candidate,
