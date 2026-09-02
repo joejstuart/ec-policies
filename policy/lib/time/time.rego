@@ -54,12 +54,19 @@ most_current(items) := item if {
 	item := newest(current)
 }
 
-# newest returns the newest item by `effective_on`. Assumes same date format and
-# time-zone for `effective_on` field.
+# newest returns the item with the latest `effective_on` instant.
 newest(items) := item if {
-	ordered := arrays.sort_by("effective_on", items)
+	# RFC3339 strings with different offsets or fractional precision do not sort
+	# chronologically, so normalize them to instants before comparing them.
+	timestamped := [{
+		"effective_on_ns": time.parse_rfc3339_ns(candidate.effective_on),
+		"item": candidate,
+	} |
+		some candidate in items
+	]
+	ordered := arrays.sort_by("effective_on_ns", timestamped)
 
-	item := ordered[count(ordered) - 1]
+	item := ordered[count(ordered) - 1].item
 }
 
 # Safely parse an RFC 3339 date string to nanoseconds.

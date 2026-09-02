@@ -244,6 +244,23 @@ test_verified_statement_happy_path if {
 	statement.predicate.result == "PASSED"
 }
 
+test_verified_statement_provenance_happy_path if {
+	result := intoto.verified_statement_provenances with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_with_provenance
+		with ec.sigstore.verify_attestation as _mock_verify_success
+		with ec.oci.image_manifest as _mock_image_manifest
+		with ec.oci.blob as _mock_blob
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+
+	count(result) == 1
+	some verified in result
+	verified.statement.predicateType == intoto.predicate_test_result
+	verified.statement.predicate.result == "PASSED"
+	verified.provenance == _slsa_v1_provenance([_slsa_v1_task])
+}
+
 test_no_provenance_referrers if {
 	result := intoto.verified_statements with input.image.ref as _image_ref
 		with ec.oci.image_referrers as _mock_referrers_no_provenance
@@ -353,6 +370,23 @@ test_verified_statements_by_predicate if {
 	statement.predicateType == "https://in-toto.io/attestation/test-result/v0.1"
 }
 
+test_verified_statement_provenances_by_predicate_preserves_association if {
+	result := intoto.verified_statement_provenances_by_predicate(intoto.predicate_test_result) with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_both_verified
+		with ec.sigstore.verify_attestation as _mock_verify_per_statement
+		with ec.oci.image_manifest as _mock_image_manifest_multi
+		with ec.oci.blob as _mock_blob_multi
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+
+	count(result) == 1
+	some verified in result
+	verified.statement.predicateType == intoto.predicate_test_result
+	some subject in verified.provenance.statement.subject
+	intoto.subject_digest(subject) == _statement_digest
+}
+
 test_mixed_bundle_and_inline_tasks if {
 	result := intoto.verified_statements with input.image.ref as _image_ref
 		with ec.oci.image_referrers as _mock_referrers_with_provenance
@@ -376,6 +410,21 @@ test_existential_attestation_matching if {
 		with data.rule_data.trusted_task_rules_enabled as true
 
 	count(result) == 1
+}
+
+test_verified_statement_provenances_exclude_untrusted_attestations if {
+	result := intoto.verified_statement_provenances with input.image.ref as _image_ref
+		with ec.oci.image_referrers as _mock_referrers_with_provenance
+		with ec.sigstore.verify_attestation as _mock_verify_mixed_attestations
+		with ec.oci.image_manifest as _mock_image_manifest
+		with ec.oci.blob as _mock_blob
+		with ec.oci.image_manifests as _mock_manifests
+		with data.rule_data.trusted_task_rules as _trusted_task_rules.trusted_task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+
+	count(result) == 1
+	some verified in result
+	verified.provenance == _slsa_v1_provenance([_slsa_v1_task])
 }
 
 test_unrecognized_statement_type if {

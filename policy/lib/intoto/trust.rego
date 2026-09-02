@@ -31,9 +31,9 @@
 # Chains) with all tasks trusted. Not all referrers must verify.
 #
 # Fail-closed behavior: if blob fetching, JSON parsing, or _type
-# validation fails for a referrer, that statement is excluded from
-# verified_statements (no error is emitted at this layer). Consumer deny
-# rules surface the absence as a policy violation.
+# validation fails for a referrer, that statement and its provenance are
+# excluded (no error is emitted at this layer). Consumer deny rules surface
+# the absence as a policy violation.
 
 package lib.intoto
 
@@ -48,13 +48,24 @@ _intoto_referrers contains referrer if {
 	referrer.artifactType == _artifact_type
 }
 
-verified_statements contains statement if {
+verified_statement_provenances contains result if {
 	some referrer in _intoto_referrers
-	_has_trusted_provenance(referrer)
+	some provenance in _trusted_provenances(referrer)
+
 	statement := oci.parsed_blob_from_image(referrer.ref)
 
 	# regal ignore:leaked-internal-reference
 	statement._type in _known_types
+
+	result := {
+		"statement": statement,
+		"provenance": provenance,
+	}
+}
+
+verified_statements contains statement if {
+	some result in verified_statement_provenances
+	statement := result.statement
 }
 
 verified_statements_by_predicate(predicate_type) := {statement |
@@ -62,11 +73,18 @@ verified_statements_by_predicate(predicate_type) := {statement |
 	statement.predicateType == predicate_type
 }
 
-_has_trusted_provenance(referrer) if {
+# Filter complete {statement, provenance} records by the statement's predicate type.
+# The predicate is only the selector; each result retains the full in-toto statement
+# and its full trusted SLSA provenance attestation.
+verified_statement_provenances_by_predicate(predicate_type) := {result |
+	some result in verified_statement_provenances
+	result.statement.predicateType == predicate_type
+}
+
+_trusted_provenances(referrer) := {att |
 	verification := ec.sigstore.verify_attestation(referrer.ref, sigstore.opts)
 	object.get(verification, "success", false) == true
 	atts := object.get(verification, "attestations", [])
-	count(atts) > 0
 	some att in atts
 	_attests_to_subject(att, referrer.digest)
 	_all_tasks_trusted(att)

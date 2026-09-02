@@ -2,6 +2,7 @@ package lib
 
 import rego.v1
 
+import data.lib.intoto
 import data.lib.rule_data
 import data.lib.tekton
 
@@ -102,15 +103,22 @@ latest_v1_pipelinerun_attestation := [pipelinerun_slsa_provenance_v1[0]] if {
 
 pipelinerun_slsa_provenance02 := [att |
 	some att in input.attestations
-	att.statement.predicate.buildType in _allowed_provenance_build_types
+	_is_pipelinerun_v02(att)
 ]
 
 # TODO: Make this work with pipelinerun_attestations above so policy rules can be
 # written for either.
 pipelinerun_slsa_provenance_v1 := [att |
 	some att in input.attestations
-	att.statement.predicateType == slsa_provenance_predicate_type_v1
+	_is_pipelinerun_v1_attestation(att)
+]
 
+_is_pipelinerun_v02(att) if {
+	att.statement.predicate.buildType in _allowed_provenance_build_types
+}
+
+_is_pipelinerun_v1_attestation(att) if {
+	att.statement.predicateType == slsa_provenance_predicate_type_v1
 	build_type := att.statement.predicate.buildDefinition.buildType
 	build_type in _allowed_provenance_build_types
 
@@ -119,7 +127,15 @@ pipelinerun_slsa_provenance_v1 := [att |
 	# attestations (runSpec with pipelineRef/pipelineSpec), non-Tekton attestations
 	# (no runSpec at all), and malformed attestations (caught by downstream rules).
 	_is_pipelinerun_v1(att)
-]
+}
+
+is_pipelinerun_attestation(att) if {
+	_is_pipelinerun_v02(att)
+}
+
+is_pipelinerun_attestation(att) if {
+	_is_pipelinerun_v1_attestation(att)
+}
 
 default _is_pipelinerun_v1(_) := true
 
@@ -136,10 +152,42 @@ taskrun_attestations := [att |
 	att.statement.predicate.buildType in taskrun_att_build_types
 ]
 
-tasks_from_pipelinerun := [task |
-	some att in pipelinerun_attestations
+tasks_from_attestations(attestations) := [task |
+	some att in attestations
 	some task in tekton.tasks(att)
 ]
+
+tasks_from_pipelinerun := tasks_from_attestations(pipelinerun_attestations)
+
+# PipelineRun provenance produced by the Integration Test Service (ITS) for
+# verified test-result statements attached to the image being evaluated.
+its_pipelinerun_attestations contains provenance if {
+	# This predicate filter returns complete {statement, provenance} records;
+	# verified.provenance is the full SLSA PipelineRun attestation, not the predicate.
+	some verified in intoto.verified_statement_provenances_by_predicate(intoto.predicate_test_result)
+	_statement_subject_matches_image(verified.statement)
+	is_pipelinerun_attestation(verified.provenance)
+	provenance := verified.provenance
+}
+
+tasks_from_its_pipelineruns := tasks_from_attestations(its_pipelinerun_attestations)
+
+task_names_from_tasks(tasks) := {name |
+	some task in tasks
+	some name in tekton.task_names(task)
+}
+
+# All normalized task names discovered across build and ITS PipelineRuns.
+build_pipelinerun_task_names := task_names_from_tasks(tasks_from_pipelinerun)
+
+its_pipelinerun_task_names := task_names_from_tasks(tasks_from_its_pipelineruns)
+
+discovered_task_names := build_pipelinerun_task_names | its_pipelinerun_task_names
+
+_statement_subject_matches_image(statement) if {
+	some subject in object.get(statement, "subject", [])
+	input.image.digest in intoto.subject_digests(subject)
+}
 
 # Collect all unique bundle references from tasks in the pipelineRun attestation.
 # Returns a set of bundle refs that can be passed to ec.oci.image_manifests.

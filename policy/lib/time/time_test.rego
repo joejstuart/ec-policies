@@ -78,6 +78,15 @@ test_newest if {
 		{"effective_on": "2262-04-11T00:00:00Z"},
 		{"effective_on": "2099-01-01T00:00:00Z"},
 	]))
+
+	# Compare instants rather than their RFC3339 string representations.
+	assertions.assert_equal(
+		{"effective_on": "2022-01-01T00:30:00-01:00"},
+		lib_time.newest([
+			{"effective_on": "2022-01-01T01:00:00Z"},
+			{"effective_on": "2022-01-01T00:30:00-01:00"},
+		]),
+	)
 }
 
 test_parse_rfc3339_safe if {
