@@ -27,11 +27,14 @@ spdx_sboms := [s | some s in _spdx_sboms]
 
 # Private set rules for deduplication. Sets naturally eliminate duplicates when the
 # same SBOM is discovered via multiple methods (attestation, OCI blob, referrer, tag).
-_cyclonedx_sboms := (_cyclonedx_sboms_from_input | _cyclonedx_sboms_from_pipelinerun) | _cyclonedx_sboms_from_image
-_spdx_sboms := (_spdx_sboms_from_input | _spdx_sboms_from_pipelinerun) | _spdx_sboms_from_image
+_cyclonedx_sboms := _cyclonedx_sboms_without_image | _cyclonedx_sboms_from_image
+_cyclonedx_sboms_without_image := _cyclonedx_sboms_from_attestations | _cyclonedx_sboms_from_pipelinerun
 
-_cyclonedx_sboms_from_input contains statement.predicate if {
-	some att in input.attestations
+_spdx_sboms := _spdx_sboms_without_image | _spdx_sboms_from_image
+_spdx_sboms_without_image := _spdx_sboms_from_attestations | _spdx_sboms_from_pipelinerun
+
+_cyclonedx_sboms_from_attestations contains statement.predicate if {
+	some att in _verified_sbom_attestations
 	statement := att.statement
 
 	# https://cyclonedx.org/specification/overview/#recognized-predicate-type
@@ -48,10 +51,18 @@ _cyclonedx_sboms_from_image contains sbom if {
 	sbom.bomFormat == "CycloneDX"
 }
 
-_spdx_sboms_from_input contains statement.predicate if {
-	some att in input.attestations
+_spdx_sboms_from_attestations contains statement.predicate if {
+	some att in _verified_sbom_attestations
 	statement := att.statement
 	statement.predicateType == "https://spdx.dev/Document"
+}
+
+# Attached SBOM attestations are verified against the named "sbom" signing
+# identity.
+_verified_sbom_attestations contains attestation if {
+	_sbom_signing_identity_configured
+	verification := ec.sigstore.verify_attestation(input.image.ref, _sbom_signing_identity)
+	some attestation in verification.attestations
 }
 
 _spdx_sboms_from_pipelinerun contains sbom if {
@@ -86,6 +97,7 @@ _fetch_sboms_from_image := _sboms_from_referrers | _sboms_from_tag_refs
 # verify against the configured "sbom" signing identity are included. When
 # no such identity is configured, no referrer SBOMs are accepted (fail-closed).
 _sboms_from_referrers contains sbom if {
+	_sbom_signing_identity_configured
 	some referrer in oci.verified_image_referrers(input.image.ref, _sbom_signing_identity)
 	referrer.artifactType in _sbom_artifact_types
 	sbom := oci.parsed_blob(referrer.ref)
@@ -95,6 +107,7 @@ _sboms_from_referrers contains sbom if {
 # Only tag refs whose signatures verify against the configured "sbom" signing
 # identity are included (fail-closed when no such identity is configured).
 _sboms_from_tag_refs contains sbom if {
+	_sbom_signing_identity_configured
 	some ref in oci.verified_image_tag_refs(input.image.ref, _sbom_signing_identity)
 	endswith(ref, ".sbom")
 	sbom := oci.parsed_blob_from_image(ref)
@@ -514,14 +527,23 @@ rule_data_errors contains error if {
 _sbom_identity_name := "sbom"
 
 # _sbom_signing_identity is the named entry in the signing_identities rule
-# data used to verify SBOMs discovered via OCI referrers and image-tag refs.
-# It is undefined (fail-closed, silent) when no such identity is configured.
+# data used to verify SBOM attestations, OCI referrers, and image-tag refs.
+# Without a configured identity it defaults to an empty object; the configured
+# guard prevents verification and no SBOMs from those sources are accepted.
+default _sbom_signing_identity := {}
+
 _sbom_signing_identity := sigstore.named_identity(_sbom_identity_name)
+
+_sbom_signing_identity_configured if {
+	is_object(_sbom_signing_identity)
+	count(_sbom_signing_identity) > 0
+}
 
 # Collect SBOM signature verification errors for observability. Fail-closed
 # exclusion happens in the verified_* wrappers; this surfaces WHY an SBOM
 # was excluded, using the failures API to avoid duplicate builtin calls.
 signature_verification_errors contains error if {
+	_sbom_signing_identity_configured
 	some result in oci.image_referrer_failures(input.image.ref, _sbom_signing_identity)
 	result.item.artifactType in _sbom_artifact_types
 	some raw_error in result.errors
@@ -529,6 +551,7 @@ signature_verification_errors contains error if {
 }
 
 signature_verification_errors contains error if {
+	_sbom_signing_identity_configured
 	some result in oci.image_tag_ref_failures(input.image.ref, _sbom_signing_identity)
 	endswith(result.item, ".sbom")
 	some raw_error in result.errors

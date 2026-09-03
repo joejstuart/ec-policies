@@ -71,7 +71,8 @@ each signing identity is self-contained.
 | `lib/intoto/trust.rego` | `object.get(verification, "success", false) == true` | Boolean pass/fail gate |
 | `base_image_registries.rego` | `object.get(info, "success", false) == true` | Boolean pass/fail gate |
 | `lib/oci/oci.rego` | `object.get(info, "errors", [])` per referrer, filtered by `errors == []` | Gate a set of OCI referrers/tag refs to the signature-verified subset (fail-closed) |
-| `lib/sbom/sbom.rego` | `some raw_error in result.errors` over the failures set | Surface why each discovered SBOM was excluded, as warnings |
+| `lib/sbom/sbom.rego` | `some attestation in verification.attestations` | Accept attached SBOM attestations verified with the named `sbom` identity |
+| `lib/sbom/sbom.rego` | `some raw_error in result.errors` over the failures set | Surface why each referrer/tag SBOM was excluded, as warnings |
 
 Prefer `object.get(info, "success", false) == true` for pass/fail checks.
 Use `some raw_error in info.errors` when you need to surface individual error
