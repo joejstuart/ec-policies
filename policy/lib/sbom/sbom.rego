@@ -10,9 +10,18 @@ import data.lib.sigstore
 import data.lib.tekton
 import rego.v1
 
-# cyclonedx_sboms and spdx_sboms returns a list of SBOMs associated with the image being validated.
-# It will first try to find them as references in the SLSA Provenance attestation and as an SBOM
-# attestation.
+# SBOM discovery is additive: every supported source is checked, and all results
+# associated with the image being evaluated are returned. Sources fall into
+# three groups:
+#
+#   1. signed SBOM attestations attached to the image;
+#   2. SBOM blobs recorded by build tasks in a PipelineRun attestation; and
+#   3. signed artifacts attached to the image through OCI referrers or legacy
+#      tag-based references.
+#
+# Each discovered document is classified as CycloneDX or SPDX. The public rules
+# expose arrays for callers, while the private set rules deduplicate documents
+# found through more than one source.
 
 _sbom_artifact_types := {
 	"application/spdx+json",
@@ -25,14 +34,18 @@ cyclonedx_sboms := [s | some s in _cyclonedx_sboms]
 
 spdx_sboms := [s | some s in _spdx_sboms]
 
-# Private set rules for deduplication. Sets naturally eliminate duplicates when the
-# same SBOM is discovered via multiple methods (attestation, OCI blob, referrer, tag).
+# Build the result for each format in two stages. The *_without_image rules
+# collect SBOMs already present in attestations supplied to policy evaluation.
+# The *_from_image rules perform additional registry discovery for the image.
 _cyclonedx_sboms := _cyclonedx_sboms_without_image | _cyclonedx_sboms_from_image
 _cyclonedx_sboms_without_image := _cyclonedx_sboms_from_attestations | _cyclonedx_sboms_from_pipelinerun
 
 _spdx_sboms := _spdx_sboms_without_image | _spdx_sboms_from_image
 _spdx_sboms_without_image := _spdx_sboms_from_attestations | _spdx_sboms_from_pipelinerun
 
+# Signed SBOM attestations carry the SBOM directly as the in-toto predicate.
+# Verification is shared by both format-specific rules below; predicateType
+# determines which result set receives each document.
 _cyclonedx_sboms_from_attestations contains statement.predicate if {
 	some att in _verified_sbom_attestations
 	statement := att.statement
@@ -57,8 +70,9 @@ _spdx_sboms_from_attestations contains statement.predicate if {
 	statement.predicateType == "https://spdx.dev/Document"
 }
 
-# Attached SBOM attestations are verified against the named "sbom" signing
-# identity.
+# Verify attached SBOM attestations once, using the named "sbom" signing
+# identity, before either format-specific rule consumes them. With no configured
+# identity this set remains empty, so attached attestations are excluded.
 _verified_sbom_attestations contains attestation if {
 	_sbom_signing_identity_configured
 	verification := ec.sigstore.verify_attestation(input.image.ref, _sbom_signing_identity)
@@ -75,6 +89,11 @@ _spdx_sboms_from_image contains sbom if {
 	sbom.SPDXID == "SPDXRef-DOCUMENT"
 }
 
+# PipelineRun attestations are already part of the policy input. Their build
+# tasks point to external SBOM blobs through SBOM_BLOB_URL, so resolve each blob
+# after confirming that the task's IMAGE_DIGEST matches the evaluated image.
+# This digest check is what selects the correct platform SBOM when one
+# PipelineRun describes several platform images.
 _fetch_pipelinerun_sbom contains sbom if {
 	some attestation in lib.pipelinerun_attestations
 	some task in tekton.build_tasks(attestation)
@@ -89,13 +108,14 @@ _fetch_pipelinerun_sbom contains sbom if {
 	sbom := oci.parsed_blob(blob_ref)
 }
 
-# _fetch_sboms_from_image discovers SBOMs attached directly to the image being validated,
-# using the OCI Referrers API and legacy tag-based discovery.
+# Registry discovery supports both the current OCI Referrers API and the legacy
+# cosign tag convention. Both are evaluated and unioned; neither is a fallback
+# for the other. The set union also deduplicates a document exposed both ways.
 _fetch_sboms_from_image := _sboms_from_referrers | _sboms_from_tag_refs
 
-# Discover SBOMs via OCI Referrers API. Only referrers whose signatures
-# verify against the configured "sbom" signing identity are included. When
-# no such identity is configured, no referrer SBOMs are accepted (fail-closed).
+# OCI referrers advertise their content type in artifactType. Verify each
+# referrer first, keep only recognized SBOM media types, then parse its blob.
+# With no configured "sbom" signing identity, this source yields no SBOMs.
 _sboms_from_referrers contains sbom if {
 	_sbom_signing_identity_configured
 	some referrer in oci.verified_image_referrers(input.image.ref, _sbom_signing_identity)
@@ -103,9 +123,9 @@ _sboms_from_referrers contains sbom if {
 	sbom := oci.parsed_blob(referrer.ref)
 }
 
-# Discover SBOMs via legacy cosign tag-based conventions (.sbom suffix).
-# Only tag refs whose signatures verify against the configured "sbom" signing
-# identity are included (fail-closed when no such identity is configured).
+# Legacy discovery derives image tag references and identifies SBOM artifacts by
+# the .sbom suffix. As with referrers, only references verified with the named
+# "sbom" signing identity are parsed; without that identity this source is empty.
 _sboms_from_tag_refs contains sbom if {
 	_sbom_signing_identity_configured
 	some ref in oci.verified_image_tag_refs(input.image.ref, _sbom_signing_identity)
