@@ -807,6 +807,7 @@ test_verification_error_surfaced_for_referrers if {
 	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_failure
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 	count(errors) == 1
@@ -819,6 +820,7 @@ test_verification_error_surfaced_for_tag_refs if {
 	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as []
 		with ec.oci.image_tag_refs as mock_tag_refs
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_failure
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 	count(errors) == 1
@@ -839,6 +841,7 @@ test_no_verification_errors_when_verify_succeeds if {
 	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_success
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 	count(errors) == 0
@@ -857,9 +860,21 @@ test_unrelated_referrer_excluded_from_verification_errors if {
 	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_failure
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 	count(errors) == 0
+}
+
+test_verification_error_surfaced_for_attestations if {
+	errors := sbom.signature_verification_errors with input.image as _cyclonedx_image
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+	count(errors) == 1
+	some error in errors
+	contains(error, "SBOM attestation signature verification failed")
 }
 
 test_no_verification_errors_when_no_opts if {
@@ -903,6 +918,12 @@ _mock_verify_spdx_attestation(_, _) := {
 _mock_verify_attestation_failure(_, _) := {
 	"success": false,
 	"errors": ["verification failed"],
+	"attestations": [],
+}
+
+_mock_verify_attestation_success(_, _) := {
+	"success": true,
+	"errors": [],
 	"attestations": [],
 }
 

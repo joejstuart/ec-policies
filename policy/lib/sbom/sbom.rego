@@ -565,6 +565,14 @@ _sbom_signing_identity_configured if {
 # was excluded, using the failures API to avoid duplicate builtin calls.
 signature_verification_errors contains error if {
 	_sbom_signing_identity_configured
+	verification := ec.sigstore.verify_attestation(input.image.ref, _sbom_signing_identity)
+	object.get(verification, "success", false) == false
+	some raw_error in verification.errors
+	error := sprintf("SBOM attestation signature verification failed for %s: %s", [input.image.ref, raw_error])
+}
+
+signature_verification_errors contains error if {
+	_sbom_signing_identity_configured
 	some result in oci.image_referrer_failures(input.image.ref, _sbom_signing_identity)
 	result.item.artifactType in _sbom_artifact_types
 	some raw_error in result.errors

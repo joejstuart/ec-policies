@@ -557,6 +557,7 @@ test_sbom_signature_verification_warn if {
 		with input.image.ref as "registry.io/repo/img@sha256:abc123"
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_failure
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": {"public_key": "test-key", "ignore_rekor": true}}}
 }
@@ -576,6 +577,7 @@ test_sbom_signature_verification_no_warn_on_success if {
 		with input.image.ref as "registry.io/repo/img@sha256:abc123"
 		with ec.oci.image_referrers as mock_referrers
 		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_success
 		with ec.sigstore.verify_image as _mock_verify_image_success
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": {"public_key": "test-key", "ignore_rekor": true}}}
 }
@@ -587,6 +589,24 @@ test_sbom_signature_verification_no_warn_without_identity if {
 		with ec.oci.image_referrers as []
 		with ec.oci.image_tag_refs as []
 }
+
+test_sbom_attestation_signature_verification_warn if {
+	expected := {{
+		"code": "sbom.signature_verification",
+		"msg": "SBOM attestation signature verification failed for registry.io/repo/img@sha256:abc123: verification failed",
+	}}
+	assertions.assert_equal_results(expected, sbom.warn) with input.attestations as []
+		with lib.sbom._verified_sbom_attestations as []
+		with input.image.ref as "registry.io/repo/img@sha256:abc123"
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_failure
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": {"public_key": "test-key", "ignore_rekor": true}}}
+}
+
+_mock_verify_attestation_success(_, _) := {"success": true, "errors": [], "attestations": []}
+
+_mock_verify_attestation_failure(_, _) := {"success": false, "errors": ["verification failed"], "attestations": []}
 
 _mock_verify_image_success(_, _) := {"errors": []}
 
