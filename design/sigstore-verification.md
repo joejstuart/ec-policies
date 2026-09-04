@@ -77,3 +77,19 @@ each signing identity is self-contained.
 Prefer `object.get(info, "success", false) == true` for pass/fail checks.
 Use `some raw_error in info.errors` when you need to surface individual error
 messages to the user.
+
+## Attached SBOM trust boundary
+
+CycloneDX and SPDX attestations embedded in policy input are not trusted
+directly. When a named `sbom` signing identity is configured,
+`lib/sbom/sbom.rego` uses the input image reference to retrieve and verify its
+attached attestations, and only exposes SBOM predicates from a successful
+verification result. Without that identity, or when verification fails, those
+SBOMs are excluded (fail-closed).
+
+This intentionally narrows the previous behavior, which exposed SBOM predicates
+from `input.attestations` without policy-side signature verification. An
+input-only or offline `ec validate --file` evaluation therefore cannot surface
+an attached-attestation SBOM unless the same attestation is available from the
+referenced image and can be verified. PipelineRun-derived SBOM blobs are
+unaffected because they follow their existing digest-matching path.

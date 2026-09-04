@@ -76,6 +76,7 @@ _spdx_sboms_from_attestations contains statement.predicate if {
 _verified_sbom_attestations contains attestation if {
 	_sbom_signing_identity_configured
 	verification := ec.sigstore.verify_attestation(input.image.ref, _sbom_signing_identity)
+	object.get(verification, "success", false) == true
 	some attestation in verification.attestations
 }
 

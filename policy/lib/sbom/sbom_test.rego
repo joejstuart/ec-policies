@@ -680,6 +680,18 @@ test_attestation_sbom_signature_verification_failure if {
 		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
 }
 
+# A mixed verification result can retain successfully parsed attestations while
+# reporting failure for another attestation. Reject the entire result so partial
+# verification cannot admit an SBOM.
+test_attestation_sbom_partial_verification_failure if {
+	assertions.assert_empty(sbom.cyclonedx_sboms) with input.attestations as []
+		with input.image as _cyclonedx_image
+		with ec.sigstore.verify_attestation as _mock_verify_attestation_partial_failure
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+		with data.rule_data__configuration__ as {"signing_identities": {"sbom": _mock_sbom_opts}}
+}
+
 # The digest-pinned SBOM_BLOB_URL in verified provenance remains trusted and
 # does not require the "sbom" signing identity.
 test_pipelinerun_sbom_unaffected_by_sbom_opts if {
@@ -892,6 +904,15 @@ _mock_verify_attestation_failure(_, _) := {
 	"success": false,
 	"errors": ["verification failed"],
 	"attestations": [],
+}
+
+_mock_verify_attestation_partial_failure(_, _) := {
+	"success": false,
+	"errors": ["parsing another attestation failed"],
+	"attestations": [{"statement": {
+		"predicateType": "https://cyclonedx.org/bom",
+		"predicate": "partially verified sbom",
+	}}],
 }
 
 _mock_verify_image_success(_, _) := {"errors": []}
