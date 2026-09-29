@@ -42,7 +42,10 @@ _basic_result(chain, failure_sprintf_params) := {
 # of the specific SLSA provenance attestation that triggered it.
 result_with_grace_period(result, attestation) := object.union(
 	result,
-	{"effective_on": time.format(grace_effective_on_ns)},
+	{
+		"effective_on": grace_effective_on,
+		"msg": sprintf("%s (grace period applies until %s)", [result.msg, grace_effective_on]),
+	},
 ) if {
 	grace_period_days := rule_data("violation_grace_period_days")
 	is_number(grace_period_days)
@@ -52,6 +55,7 @@ result_with_grace_period(result, attestation) := object.union(
 	finished_on_ns := _finished_on_ns(attestation)
 	grace_effective_on_ns := time.add_date(finished_on_ns, 0, 0, grace_period_days)
 	grace_effective_on_ns > time.parse_rfc3339_ns(result.effective_on)
+	grace_effective_on := time.format(grace_effective_on_ns)
 } else := result
 
 _finished_on_ns(attestation) := time.parse_rfc3339_ns(finished_on) if {

@@ -170,7 +170,7 @@ test_result_helper_with_violation_grace_period if {
 	expected_result := {
 		"code": "oh.Hey",
 		"effective_on": "2025-01-15T12:30:00Z",
-		"msg": "Bad thing foo",
+		"msg": "Bad thing foo (grace period applies until 2025-01-15T12:30:00Z)",
 	}
 
 	rule_annotations := {"custom": {
@@ -205,8 +205,14 @@ test_result_helper_does_not_apply_grace_period_implicitly if {
 }
 
 test_result_helper_with_v02_violation_grace_period if {
-	result := {"effective_on": "2022-01-01T00:00:00Z"}
-	expected := {"effective_on": "2025-01-15T12:30:00Z"}
+	result := {
+		"effective_on": "2022-01-01T00:00:00Z",
+		"msg": "Bad thing foo",
+	}
+	expected := {
+		"effective_on": "2025-01-15T12:30:00Z",
+		"msg": "Bad thing foo (grace period applies until 2025-01-15T12:30:00Z)",
+	}
 	attestation := _v02_attestation_with_finished_on("2025-01-08T12:30:00Z")
 
 	lib.assert_equal(
@@ -216,7 +222,10 @@ test_result_helper_with_v02_violation_grace_period if {
 }
 
 test_grace_period_preserves_later_effective_on if {
-	result := {"effective_on": "2025-02-01T00:00:00Z"}
+	result := {
+		"effective_on": "2025-02-01T00:00:00Z",
+		"msg": "Bad thing foo",
+	}
 	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
 
 	lib.assert_equal(
@@ -226,7 +235,10 @@ test_grace_period_preserves_later_effective_on if {
 }
 
 test_grace_period_ignores_unusable_inputs if {
-	result := {"effective_on": "2022-01-01T00:00:00Z"}
+	result := {
+		"effective_on": "2022-01-01T00:00:00Z",
+		"msg": "Bad thing foo",
+	}
 
 	# Malformed and unsupported provenance inputs leave the result unchanged.
 	lib.assert_equal(
