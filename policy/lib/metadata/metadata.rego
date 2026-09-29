@@ -38,6 +38,30 @@ _basic_result(chain, failure_sprintf_params) := {
 	"effective_on": time_lib.when(chain),
 }
 
+# Opt-in helper that extends a result's effective date using the completion time
+# of the specific SLSA provenance attestation that triggered it.
+result_with_grace_period(result, attestation) := object.union(
+	result,
+	{"effective_on": time.format(grace_effective_on_ns)},
+) if {
+	grace_period_days := rule_data("violation_grace_period_days")
+	is_number(grace_period_days)
+	grace_period_days > 0
+	grace_period_days == floor(grace_period_days)
+
+	finished_on_ns := _finished_on_ns(attestation)
+	grace_effective_on_ns := time.add_date(finished_on_ns, 0, 0, grace_period_days)
+	grace_effective_on_ns > time.parse_rfc3339_ns(result.effective_on)
+} else := result
+
+_finished_on_ns(attestation) := time.parse_rfc3339_ns(finished_on) if {
+	attestation.statement.predicateType == "https://slsa.dev/provenance/v1"
+	finished_on := attestation.statement.predicate.runDetails.metadata.finishedOn
+} else := time.parse_rfc3339_ns(finished_on) if {
+	attestation.statement.predicateType == "https://slsa.dev/provenance/v0.2"
+	finished_on := attestation.statement.predicate.metadata.buildFinishedOn
+}
+
 _code(chain) := code if {
 	rule_path := chain[0].path
 	pkg_name := _pkg_name(rule_path)

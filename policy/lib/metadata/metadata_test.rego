@@ -166,6 +166,102 @@ test_result_helper if {
 	assertions.assert_equal(expected_result, metadata.result_helper(chain, ["foo"]))
 }
 
+test_result_helper_with_violation_grace_period if {
+	expected_result := {
+		"code": "oh.Hey",
+		"effective_on": "2025-01-15T12:30:00Z",
+		"msg": "Bad thing foo",
+	}
+
+	rule_annotations := {"custom": {
+		"short_name": "Hey",
+		"failure_msg": "Bad thing %s",
+	}}
+
+	chain := [{"annotations": rule_annotations, "path": ["data", "oh", "deny"]}]
+	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
+
+	lib.assert_equal(
+		expected_result,
+		lib.result_with_grace_period(lib.result_helper(chain, ["foo"]), attestation),
+	) with data.rule_data.violation_grace_period_days as 7
+}
+
+test_result_helper_does_not_apply_grace_period_implicitly if {
+	expected_result := {
+		"code": "oh.Hey",
+		"effective_on": "2022-01-01T00:00:00Z",
+		"msg": "Bad thing foo",
+	}
+	rule_annotations := {"custom": {
+		"short_name": "Hey",
+		"failure_msg": "Bad thing %s",
+	}}
+	chain := [{"annotations": rule_annotations, "path": ["data", "oh", "deny"]}]
+	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
+
+	lib.assert_equal(expected_result, lib.result_helper(chain, ["foo"])) with input.attestations as [attestation]
+		with data.rule_data.violation_grace_period_days as 7
+}
+
+test_result_helper_with_v02_violation_grace_period if {
+	result := {"effective_on": "2022-01-01T00:00:00Z"}
+	expected := {"effective_on": "2025-01-15T12:30:00Z"}
+	attestation := _v02_attestation_with_finished_on("2025-01-08T12:30:00Z")
+
+	lib.assert_equal(
+		expected,
+		lib.result_with_grace_period(result, attestation),
+	) with data.rule_data.violation_grace_period_days as 7
+}
+
+test_grace_period_preserves_later_effective_on if {
+	result := {"effective_on": "2025-02-01T00:00:00Z"}
+	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
+
+	lib.assert_equal(
+		result,
+		lib.result_with_grace_period(result, attestation),
+	) with data.rule_data.violation_grace_period_days as 7
+}
+
+test_grace_period_ignores_unusable_inputs if {
+	result := {"effective_on": "2022-01-01T00:00:00Z"}
+
+	# Malformed and unsupported provenance inputs leave the result unchanged.
+	lib.assert_equal(
+		result,
+		lib.result_with_grace_period(result, _attestation_with_finished_on("not-a-timestamp")),
+	) with data.rule_data.violation_grace_period_days as 7
+	lib.assert_equal(
+		result,
+		lib.result_with_grace_period(result, _unsupported_attestation_with_finished_on("2025-01-08T12:30:00Z")),
+	) with data.rule_data.violation_grace_period_days as 7
+
+	# Disabled or invalid rule data must not change the result.
+	every grace_period in [0, -1, 1.5, "7"] {
+		lib.assert_equal(
+			result,
+			lib.result_with_grace_period(result, _attestation_with_finished_on("2025-01-08T12:30:00Z")),
+		) with data.rule_data.violation_grace_period_days as grace_period
+	}
+}
+
+_attestation_with_finished_on(finished_on) := {"statement": {
+	"predicateType": "https://slsa.dev/provenance/v1",
+	"predicate": {"runDetails": {"metadata": {"finishedOn": finished_on}}},
+}}
+
+_v02_attestation_with_finished_on(finished_on) := {"statement": {
+	"predicateType": "https://slsa.dev/provenance/v0.2",
+	"predicate": {"metadata": {"buildFinishedOn": finished_on}},
+}}
+
+_unsupported_attestation_with_finished_on(finished_on) := {"statement": {
+	"predicateType": "https://slsa.dev/provenance/unsupported",
+	"predicate": {"runDetails": {"metadata": {"finishedOn": finished_on}}},
+}}
+
 test_result_helper_without_package_annotation if {
 	expected_result := {
 		"code": "package_name.Hey", # Fixme
