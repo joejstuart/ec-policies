@@ -354,6 +354,15 @@ test_grandfathered_deny_rule_warning if {
 		with input.attestations as [att]
 		with ec.oci.image_manifests as _mock_image_manifests
 		with ec.oci.image_manifest as _mock_image_manifest
+
+	# Before effective_on, report the fixed deadline instead of the ordinary
+	# future-deny warning's earlier and incorrect date.
+	assertions.assert_equal_results(trusted_task.warn, expected) with data.rule_data.trusted_task_rules as task_rules
+		with data.rule_data.trusted_task_rules_enabled as true
+		with data.config.policy.when_ns as time.parse_rfc3339_ns("2025-01-10T00:00:00Z")
+		with input.attestations as [att]
+		with ec.oci.image_manifests as _mock_image_manifests
+		with ec.oci.image_manifest as _mock_image_manifest
 }
 
 # Test that deny rules without effective_on do not produce a future deny warning

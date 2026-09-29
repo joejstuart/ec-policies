@@ -128,8 +128,11 @@ warn contains result if {
 #
 warn contains result if {
 	not tekton.missing_trusted_task_rules_data
-	some task in lib.tasks_from_pipelinerun
+	some attestation in lib.pipelinerun_attestations
+	some task in tekton.tasks(attestation)
 	some rule in tekton.future_deny_rules_for_task(task, _manifests)
+	grandfathered_rules := tekton.grandfathered_deny_rules_for_task(task, _manifests, attestation)
+	not rule in grandfathered_rules
 	result := metadata.result_helper_with_term(
 		rego.metadata.chain(),
 		[tekton.pipeline_task_name(task), rule.pattern, rule.effective_on],

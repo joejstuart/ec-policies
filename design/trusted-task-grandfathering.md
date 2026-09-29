@@ -49,6 +49,8 @@ groups.
 
 ## Operator visibility
 
-The trusted-task release package emits a warning while a deny is being
-grandfathered. It includes the task, matching pattern, cutoff, and fixed
-deadline so teams can see when the same build will become a violation.
+The trusted-task release package emits a warning as soon as an eligible deny
+record is present, including before `effective_on`. It includes the task,
+matching pattern, cutoff, and fixed deadline so teams see the real date when
+the same build will become a violation. The ordinary future-deny warning is
+suppressed for that record because its cutoff is not the artifact's deadline.

@@ -211,6 +211,17 @@ test_attestation_scoped_grandfathering if {
 			with data.config.policy.when_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
 		assertions.assert_equal(1, count(grandfathered))
 	}
+
+	# The deadline is discoverable before the deny becomes effective, so callers
+	# do not incorrectly report effective_on as the violation date.
+	future_grandfathered := tekton.grandfathered_deny_rules_for_task(
+		trusted_bundle_task,
+		_empty_bundle_manifests,
+		v1_attestation,
+	) with data.rule_data.trusted_task_rules as rules
+		with data.rule_data.trusted_task_rules_enabled as true
+		with data.config.policy.when_ns as time.parse_rfc3339_ns("2025-01-10T00:00:00Z")
+	assertions.assert_equal(1, count(future_grandfathered))
 }
 
 test_attestation_scoped_grandfathering_boundaries if {

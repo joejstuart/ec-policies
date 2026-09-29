@@ -374,12 +374,6 @@ _effective_allow_rules := [rule |
 	_rule_is_effective(rule)
 ]
 
-# Filter deny rules to only include those that are currently effective (not in the future)
-_effective_deny_rules := [rule |
-	some rule in _trusted_task_rules_data.deny
-	_rule_is_effective(rule)
-]
-
 # Filter deny rules to only include those that will become effective in the future
 future_deny_rules := [rule |
 	some rule in _trusted_task_rules_data.deny
@@ -404,13 +398,14 @@ future_deny_rules_for_task(task, bundle_manifests) := matching_rules if {
 	]
 }
 
-# Returns the matching deny rules that currently grandfather the task for the
-# given build attestation. An empty result means the task is not grandfathered.
+# Returns matching deny rules that grandfather the task for the given build
+# attestation. This includes future rules so callers can report the real
+# deadline before effective_on. An empty result means the task is not eligible.
 grandfathered_deny_rules_for_task(task, bundle_manifests, attestation) := matching_rules if {
 	is_trusted_task_for_attestation(task, bundle_manifests, attestation)
 	ref := task_ref(task)
 	matching_rules := [rule |
-		some rule in _matching_effective_deny_rules(ref, bundle_manifests)
+		some rule in _matching_deny_rules(ref, bundle_manifests)
 		_rule_grandfathers_attestation(rule, attestation)
 	]
 }
@@ -448,7 +443,12 @@ _task_matches_deny_rule(ref, bundle_manifests) if {
 }
 
 _matching_effective_deny_rules(ref, bundle_manifests) := [rule |
-	some rule in _effective_deny_rules
+	some rule in _matching_deny_rules(ref, bundle_manifests)
+	_rule_is_effective(rule)
+]
+
+_matching_deny_rules(ref, bundle_manifests) := [rule |
+	some rule in _trusted_task_rules_data.deny
 	_pattern_matches(ref.key, rule.pattern)
 	_version_satisfies_any_rule_constraints(ref, rule, bundle_manifests)
 ]
