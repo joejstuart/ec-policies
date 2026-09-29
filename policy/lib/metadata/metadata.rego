@@ -38,37 +38,6 @@ _basic_result(chain, failure_sprintf_params) := {
 	"effective_on": time_lib.when(chain),
 }
 
-# Opt-in helper for rule-data records that grandfather builds completed before
-# the rule's effective_on cutoff until a fixed grandfather_until timestamp. The
-# original result's fields are preserved, so any result helper can be wrapped.
-result_with_grandfathering(result, attestation, rule) := object.union(
-	result,
-	{
-		"effective_on": rule.grandfather_until,
-		"msg": sprintf(
-			"%s (build completed before the %s cutoff; grandfathered until %s)",
-			[result.msg, rule.effective_on, rule.grandfather_until],
-		),
-	},
-) if {
-	finished_on_ns := _finished_on_ns(attestation)
-	cutoff_ns := time.parse_rfc3339_ns(rule.effective_on)
-	finished_on_ns < cutoff_ns
-
-	grandfather_until_ns := time.parse_rfc3339_ns(rule.grandfather_until)
-	cutoff_ns < grandfather_until_ns
-	time_lib.effective_current_time_ns < grandfather_until_ns
-	time.parse_rfc3339_ns(result.effective_on) < grandfather_until_ns
-} else := result
-
-_finished_on_ns(attestation) := time.parse_rfc3339_ns(finished_on) if {
-	attestation.statement.predicateType == "https://slsa.dev/provenance/v1"
-	finished_on := attestation.statement.predicate.runDetails.metadata.finishedOn
-} else := time.parse_rfc3339_ns(finished_on) if {
-	attestation.statement.predicateType == "https://slsa.dev/provenance/v0.2"
-	finished_on := attestation.statement.predicate.metadata.buildFinishedOn
-}
-
 _code(chain) := code if {
 	rule_path := chain[0].path
 	pkg_name := _pkg_name(rule_path)
