@@ -166,97 +166,123 @@ test_result_helper if {
 	assertions.assert_equal(expected_result, metadata.result_helper(chain, ["foo"]))
 }
 
-test_result_helper_with_violation_grace_period if {
+test_result_helper_with_grandfathering if {
 	expected_result := {
 		"code": "oh.Hey",
-		"effective_on": "2025-01-15T12:30:00Z",
-		"msg": "Bad thing foo (grace period applies until 2025-01-15T12:30:00Z)",
-	}
-
-	rule_annotations := {"custom": {
-		"short_name": "Hey",
-		"failure_msg": "Bad thing %s",
-	}}
-
-	chain := [{"annotations": rule_annotations, "path": ["data", "oh", "deny"]}]
-	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
-
-	lib.assert_equal(
-		expected_result,
-		lib.result_with_grace_period(lib.result_helper(chain, ["foo"]), attestation),
-	) with data.rule_data.violation_grace_period_days as 7
-}
-
-test_result_helper_does_not_apply_grace_period_implicitly if {
-	expected_result := {
-		"code": "oh.Hey",
-		"effective_on": "2022-01-01T00:00:00Z",
-		"msg": "Bad thing foo",
-	}
-	rule_annotations := {"custom": {
-		"short_name": "Hey",
-		"failure_msg": "Bad thing %s",
-	}}
-	chain := [{"annotations": rule_annotations, "path": ["data", "oh", "deny"]}]
-	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
-
-	lib.assert_equal(expected_result, lib.result_helper(chain, ["foo"])) with input.attestations as [attestation]
-		with data.rule_data.violation_grace_period_days as 7
-}
-
-test_result_helper_with_v02_violation_grace_period if {
-	result := {
-		"effective_on": "2022-01-01T00:00:00Z",
-		"msg": "Bad thing foo",
-	}
-	expected := {
-		"effective_on": "2025-01-15T12:30:00Z",
-		"msg": "Bad thing foo (grace period applies until 2025-01-15T12:30:00Z)",
-	}
-	attestation := _v02_attestation_with_finished_on("2025-01-08T12:30:00Z")
-
-	lib.assert_equal(
-		expected,
-		lib.result_with_grace_period(result, attestation),
-	) with data.rule_data.violation_grace_period_days as 7
-}
-
-test_grace_period_preserves_later_effective_on if {
-	result := {
+		"collections": ["redhat"],
 		"effective_on": "2025-02-01T00:00:00Z",
-		"msg": "Bad thing foo",
+		"msg": "Bad thing foo (build completed before the 2025-01-15T00:00:00Z cutoff; grandfathered until 2025-02-01T00:00:00Z)",
+		"severity": "warning",
+		"term": "git-clone",
 	}
-	attestation := _attestation_with_finished_on("2025-01-08T12:30:00Z")
-
-	lib.assert_equal(
-		result,
-		lib.result_with_grace_period(result, attestation),
-	) with data.rule_data.violation_grace_period_days as 7
+	assertions.assert_equal(
+		expected_result,
+		metadata.result_with_grandfathering(
+			_result_with_effective_on("2024-01-01T00:00:00Z"),
+			_attestation_with_finished_on("2025-01-14T23:59:59Z"),
+			_grandfathering_rule,
+		),
+	) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
 }
 
-test_grace_period_ignores_unusable_inputs if {
-	result := {
-		"effective_on": "2022-01-01T00:00:00Z",
-		"msg": "Bad thing foo",
+test_result_helper_with_v02_grandfathering if {
+	expected := {
+		"code": "oh.Hey",
+		"collections": ["redhat"],
+		"effective_on": "2025-02-01T00:00:00Z",
+		"msg": "Bad thing foo (build completed before the 2025-01-15T00:00:00Z cutoff; grandfathered until 2025-02-01T00:00:00Z)",
+		"severity": "warning",
+		"term": "git-clone",
 	}
+	assertions.assert_equal(
+		expected,
+		metadata.result_with_grandfathering(
+			_result_with_effective_on("2024-01-01T00:00:00Z"),
+			_v02_attestation_with_finished_on("2025-01-14T23:59:59Z"),
+			_grandfathering_rule,
+		),
+	) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
+}
 
-	# Malformed and unsupported provenance inputs leave the result unchanged.
-	lib.assert_equal(
-		result,
-		lib.result_with_grace_period(result, _attestation_with_finished_on("not-a-timestamp")),
-	) with data.rule_data.violation_grace_period_days as 7
-	lib.assert_equal(
-		result,
-		lib.result_with_grace_period(result, _unsupported_attestation_with_finished_on("2025-01-08T12:30:00Z")),
-	) with data.rule_data.violation_grace_period_days as 7
-
-	# Disabled or invalid rule data must not change the result.
-	every grace_period in [0, -1, 1.5, "7"] {
-		lib.assert_equal(
+test_grandfathering_rejects_builds_at_or_after_cutoff if {
+	every finished_on in ["2025-01-15T00:00:00Z", "2025-01-15T00:00:01Z"] {
+		result := _result_with_effective_on("2024-01-01T00:00:00Z")
+		assertions.assert_equal(
 			result,
-			lib.result_with_grace_period(result, _attestation_with_finished_on("2025-01-08T12:30:00Z")),
-		) with data.rule_data.violation_grace_period_days as grace_period
+			metadata.result_with_grandfathering(
+				result,
+				_attestation_with_finished_on(finished_on),
+				_grandfathering_rule,
+			),
+		) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
 	}
+}
+
+test_grandfathering_ends_at_absolute_deadline if {
+	result := _result_with_effective_on("2024-01-01T00:00:00Z")
+	assertions.assert_equal(
+		result,
+		metadata.result_with_grandfathering(
+			result,
+			_attestation_with_finished_on("2025-01-14T23:59:59Z"),
+			_grandfathering_rule,
+		),
+	) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-02-01T00:00:00Z")
+}
+
+test_grandfathering_preserves_later_result_effective_on if {
+	result := _result_with_effective_on("2025-03-01T00:00:00Z")
+	assertions.assert_equal(
+		result,
+		metadata.result_with_grandfathering(
+			result,
+			_attestation_with_finished_on("2025-01-14T23:59:59Z"),
+			_grandfathering_rule,
+		),
+	) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
+}
+
+test_grandfathering_ignores_unusable_inputs if {
+	result := _result_with_effective_on("2024-01-01T00:00:00Z")
+	attestation := _attestation_with_finished_on("2025-01-14T23:59:59Z")
+
+	# Malformed or unsupported attestations fail closed.
+	every unusable_attestation in [
+		_attestation_with_finished_on("not-a-timestamp"),
+		_unsupported_attestation_with_finished_on("2025-01-14T23:59:59Z"),
+	] {
+		assertions.assert_equal(
+			result,
+			metadata.result_with_grandfathering(result, unusable_attestation, _grandfathering_rule),
+		) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
+	}
+
+	# Missing, malformed, or non-extending rule dates fail closed.
+	every unusable_rule in [
+		{},
+		{"effective_on": "not-a-timestamp", "grandfather_until": "2025-02-01T00:00:00Z"},
+		{"effective_on": "2025-01-15T00:00:00Z", "grandfather_until": "not-a-timestamp"},
+		{"effective_on": "2025-01-15T00:00:00Z", "grandfather_until": "2025-01-15T00:00:00Z"},
+	] {
+		assertions.assert_equal(
+			result,
+			metadata.result_with_grandfathering(result, attestation, unusable_rule),
+		) with data.lib.time.effective_current_time_ns as time.parse_rfc3339_ns("2025-01-20T00:00:00Z")
+	}
+}
+
+_grandfathering_rule := {
+	"effective_on": "2025-01-15T00:00:00Z",
+	"grandfather_until": "2025-02-01T00:00:00Z",
+}
+
+_result_with_effective_on(effective_on) := {
+	"code": "oh.Hey",
+	"collections": ["redhat"],
+	"effective_on": effective_on,
+	"msg": "Bad thing foo",
+	"severity": "warning",
+	"term": "git-clone",
 }
 
 _attestation_with_finished_on(finished_on) := {"statement": {

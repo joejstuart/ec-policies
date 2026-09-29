@@ -38,24 +38,27 @@ _basic_result(chain, failure_sprintf_params) := {
 	"effective_on": time_lib.when(chain),
 }
 
-# Opt-in helper that extends a result's effective date using the completion time
-# of the specific SLSA provenance attestation that triggered it.
-result_with_grace_period(result, attestation) := object.union(
+# Opt-in helper for rule-data records that grandfather builds completed before
+# the rule's effective_on cutoff until a fixed grandfather_until timestamp. The
+# original result's fields are preserved, so any result helper can be wrapped.
+result_with_grandfathering(result, attestation, rule) := object.union(
 	result,
 	{
-		"effective_on": grace_effective_on,
-		"msg": sprintf("%s (grace period applies until %s)", [result.msg, grace_effective_on]),
+		"effective_on": rule.grandfather_until,
+		"msg": sprintf(
+			"%s (build completed before the %s cutoff; grandfathered until %s)",
+			[result.msg, rule.effective_on, rule.grandfather_until],
+		),
 	},
 ) if {
-	grace_period_days := rule_data("violation_grace_period_days")
-	is_number(grace_period_days)
-	grace_period_days > 0
-	grace_period_days == floor(grace_period_days)
-
 	finished_on_ns := _finished_on_ns(attestation)
-	grace_effective_on_ns := time.add_date(finished_on_ns, 0, 0, grace_period_days)
-	grace_effective_on_ns > time.parse_rfc3339_ns(result.effective_on)
-	grace_effective_on := time.format(grace_effective_on_ns)
+	cutoff_ns := time.parse_rfc3339_ns(rule.effective_on)
+	finished_on_ns < cutoff_ns
+
+	grandfather_until_ns := time.parse_rfc3339_ns(rule.grandfather_until)
+	cutoff_ns < grandfather_until_ns
+	time_lib.effective_current_time_ns < grandfather_until_ns
+	time.parse_rfc3339_ns(result.effective_on) < grandfather_until_ns
 } else := result
 
 _finished_on_ns(attestation) := time.parse_rfc3339_ns(finished_on) if {
