@@ -29,6 +29,22 @@ deny contains result if {
 }
 
 # METADATA
+# title: Required result defined (v2)
+# description: >-
+#   Verify if Task defines the required result. This is controlled by the `required_task_results`
+#   rule data key. By default this is empty making this rule a no-op.
+# custom:
+#   short_name: required_v2
+#   failure_msg: '%s'
+#   effective_on: 2027-01-11T00:00:00Z
+#
+deny contains result if {
+	some task in tkn_bundle.tasks
+	some err in _errors_v2(task)
+	result := metadata.result_helper(rego.metadata.chain(), [err])
+}
+
+# METADATA
 # title: Rule data provided
 # description: >-
 #   Confirm the expected `required_task_results` rule data key has been provided in the expected
@@ -73,6 +89,55 @@ _errors(task) := {err |
 	count(found) == 0
 	err := sprintf("%q result not found in %q Task/v%s", [required.result, required.task, version])
 }
+
+# _errors_v2 mirrors _errors but reads declared results through _declared_results,
+# which only yields results when `spec.results` is a proper array. A malformed
+# `spec.results` therefore cannot mask a required result that is actually missing.
+_errors_v2(task) := ({err |
+	version := object.get(task.metadata, ["labels", "app.kubernetes.io/version"], "")
+	version_constraints := {r.version | some r in rule_data.get(_rule_data_key)}
+	not version in version_constraints
+
+	some required in {r |
+		some r in rule_data.get(_rule_data_key)
+		task.metadata.name == r.task
+		not r.version
+	}
+	found := [r |
+		some r in _declared_results(task)
+		r.name == required.result
+	]
+	count(found) == 0
+	err := sprintf("%q result not found in %q Task%s (all versions)", [required.result, required.task, _vstr(version)])
+} | {err |
+	version := object.get(task.metadata, ["labels", "app.kubernetes.io/version"], "")
+	some required in {r |
+		some r in rule_data.get(_rule_data_key)
+		task.metadata.name == r.task
+		r.version == version
+	}
+	found := [r |
+		some r in _declared_results(task)
+		r.name == required.result
+	]
+	count(found) == 0
+	err := sprintf("%q result not found in %q Task/v%s", [required.result, required.task, version])
+}) | {err |
+	# A Task whose metadata is missing or not an object has no usable name, so it can
+	# never be matched against the rule data and the required-result check above would
+	# silently pass. Report it, but only when required results are actually configured.
+	count(rule_data.get(_rule_data_key)) > 0
+	not task.metadata.name
+	err := "Task has no usable metadata.name; required results cannot be verified"
+}
+
+# _declared_results returns the Task's results only when `spec.results` is a
+# proper array. A wrong-container value (e.g. an object) or an absent value
+# yields no results, so a malformed `spec.results` cannot mask a required result
+# that is actually missing.
+_declared_results(task) := task.spec.results if {
+	is_array(task.spec.results)
+} else := []
 
 _rule_data_errors contains error if {
 	schema := {

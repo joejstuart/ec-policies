@@ -31,6 +31,25 @@ deny contains result if {
 }
 
 # METADATA
+# title: Build task has build type label (v2)
+# description: >-
+#   Confirm the build task definition has the required build type label.
+# custom:
+#   short_name: build_type_label_set_v2
+#   failure_msg: The required build label '%s' is missing
+#   effective_on: 2027-01-11T00:00:00Z
+#   collections:
+#   - redhat_security
+#
+deny contains result if {
+	# Only applies when labels are provided at all; a complete absence of labels
+	# is reported by build_task_has_label instead.
+	labels := tekton.task_labels(input)
+	not _has_build_label(labels)
+	result := metadata.result_helper(rego.metadata.chain(), [build_label])
+}
+
+# METADATA
 # title: Build task has label
 # description: >-
 #   Confirm that the build task definition includes at least one label.
@@ -43,4 +62,11 @@ deny contains result if {
 deny contains result if {
 	not tekton.task_labels(input)
 	result := metadata.result_helper(rego.metadata.chain(), [])
+}
+
+# _has_build_label is true only when labels is a proper object that contains the
+# required build-type label. A non-object value is never considered to have it.
+_has_build_label(labels) if {
+	is_object(labels)
+	build_label in object.keys(labels)
 }

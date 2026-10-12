@@ -8,6 +8,7 @@
 *** xref:packages/task_annotations.adoc#annotations__expires_on_format[Task definition uses expires-on annotation in RFC3339 format]
 ** xref:packages/task_results.adoc[Tekton Task result]
 *** xref:packages/task_results.adoc#results__required[Required result defined]
+*** xref:packages/task_results.adoc#results__required_v2[Required result defined (v2)]
 *** xref:packages/task_results.adoc#results__rule_data_provided[Rule data provided]
 ** xref:packages/task_kind.adoc[Tekton task kind checks]
 *** xref:packages/task_kind.adoc#kind__kind_present[Kind field is present in task definition]
@@ -16,3 +17,4 @@
 *** xref:packages/task_trusted_artifacts.adoc#trusted_artifacts__parameter[Parameter]
 *** xref:packages/task_trusted_artifacts.adoc#trusted_artifacts__result[Result]
 *** xref:packages/task_trusted_artifacts.adoc#trusted_artifacts__workspace[Workspace]
+*** xref:packages/task_trusted_artifacts.adoc#trusted_artifacts__workspaces_format[Workspaces format]

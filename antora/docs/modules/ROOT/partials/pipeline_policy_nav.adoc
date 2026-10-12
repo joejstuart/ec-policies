@@ -8,6 +8,8 @@
 *** xref:packages/pipeline_task_bundle.adoc#task_bundle__unpinned_task_bundle[Unpinned task bundle reference]
 ** xref:packages/pipeline_basic.adoc[Pipeline definition sanity checks]
 *** xref:packages/pipeline_basic.adoc#basic__expected_kind[Pipeline definition has expected kind]
+*** xref:packages/pipeline_basic.adoc#basic__expected_kind_v2[Pipeline definition has expected kind (v2)]
+*** xref:packages/pipeline_basic.adoc#basic__input_format[Pipeline definition is an object]
 ** xref:packages/pipeline_required_tasks.adoc[Required tasks]
 *** xref:packages/pipeline_required_tasks.adoc#required_tasks__missing_future_required_task[Missing future required task]
 *** xref:packages/pipeline_required_tasks.adoc#required_tasks__missing_required_task[Missing required task]

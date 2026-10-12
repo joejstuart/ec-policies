@@ -155,6 +155,37 @@ task_params(task) := params if {
 # task_param returns the value of the given parameter in the task.
 task_param(task, name) := task_params(task)[name]
 
+# malformed_params is true when the task's parameter container, or an entry within
+# it, is malformed in a way that prevents task_params from observing the parameters.
+# This covers a v0.2 `invocation.parameters` that is not an object, a v1 `params`
+# that is not an array, and a v1 `params` entry that is not an object or is missing
+# its `name` or `value` key. In all of these cases task_param is undefined, so a
+# parameter check that relies on it would otherwise silently pass.
+malformed_params(task) if {
+	params := object.get(task, ["invocation", "parameters"], {})
+	not is_object(params)
+}
+
+malformed_params(task) if {
+	params := object.get(task, ["params"], [])
+	not is_array(params)
+}
+
+malformed_params(task) if {
+	some param in object.get(task, ["params"], [])
+	not _well_formed_param(param)
+}
+
+# _well_formed_param is true only for an object entry that declares a string name
+# and a value; anything else hides the parameter from task_params (a non-string
+# name becomes an unmatchable map key).
+_well_formed_param(param) if {
+	is_object(param)
+	"name" in object.keys(param)
+	is_string(param.name)
+	"value" in object.keys(param)
+}
+
 task_results(task) := task.results
 
 # task_result returns the value of the given result in the task.

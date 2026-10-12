@@ -42,6 +42,35 @@ deny contains result if {
 }
 
 # METADATA
+# title: Prefetch dependencies mode parameter check (v2)
+# description: >-
+#   Verify the prefetch-dependencies task in the PipelineRun attestation was not
+#   invoked with the "permissive" mode parameter, which could compromise security.
+# custom:
+#   short_name: mode_not_permissive_v2
+#   failure_msg: >-
+#     Task '%s' was invoked with an insecure or malformed mode parameter
+#   solution: >-
+#     Change the mode parameter of the prefetch-dependencies task from 'permissive'
+#     to a more secure value, and make sure it is provided as a string. The
+#     permissive mode may allow insecure dependency fetching practices.
+#   collections:
+#   - redhat
+#   - redhat_security
+#   effective_on: 2027-01-11T00:00:00Z
+#   depends_on:
+#   - attestation_type.known_attestation_type
+#
+deny contains result if {
+	some attestation in lib.pipelinerun_attestations
+	some task in tekton.tasks(attestation)
+	some name in {"prefetch-dependencies", "prefetch-dependencies-oci-ta"}
+	name in tekton.task_names(task)
+	_insecure_mode(task)
+	result := metadata.result_helper(rego.metadata.chain(), [name])
+}
+
+# METADATA
 # title: Prefetch task has package registry proxy enabled
 # description: >-
 #   Verify that prefetch-dependencies tasks have the
@@ -72,4 +101,22 @@ deny contains result if {
 
 _task_has_proxy_enabled(task) if {
 	tekton.task_param(task, "enable-package-registry-proxy") == "true"
+}
+
+# The "permissive" mode is explicitly insecure.
+_insecure_mode(task) if {
+	tekton.task_param(task, "mode") == "permissive"
+}
+
+# A present but non-string mode is malformed and must not be trusted. An absent
+# mode leaves task_param undefined, so this remains a no-op in that case.
+_insecure_mode(task) if {
+	mode := tekton.task_param(task, "mode")
+	not is_string(mode)
+}
+
+# A malformed parameter container can hide the mode value entirely, so treat it as
+# insecure rather than letting it silently pass.
+_insecure_mode(task) if {
+	tekton.malformed_params(task)
 }
