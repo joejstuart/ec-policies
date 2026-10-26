@@ -178,30 +178,45 @@ system takes priority when data is present.
   named allow/deny groups within that one ruleData object into `allow` and `deny`
   lists. There is no separate system-level (`data`-tree) source to merge
   with, so the entire allow/deny set originates from ruleData. An attacker who
-  can influence ruleData controls the trusted-task rules directly; the schema
-  validates format only. For allow rules, ALL version constraints must be
-  satisfied; for deny rules, ANY constraint suffices, and deny is evaluated
-  before allow.
+  can influence ruleData controls the trusted-task rules directly. Structural
+  schema validation checks rule shape, and configured `signing_identity` values
+  are additionally checked by `sigstore.validate` for valid verifier options.
+  At evaluation, a matching OCI bundle allow rule with `signing_identity` is
+  satisfied only for a digest-pinned bundle whose signature passes
+  `ec.sigstore.verify_image` against that identity. If the key is absent, the
+  pattern-only path applies; a malformed present value cannot use that
+  pass-through. Git-resolved tasks remain exempt from signature verification.
+  For allow rules, ALL version constraints must be satisfied; for deny rules,
+  ANY constraint suffices, and deny is evaluated before allow.
 - **Legacy system (`trusted_tasks`)**: still dual-source. `_trusted_tasks_data`
   is `object.union(data.trusted_tasks, lib_rule_data("trusted_tasks"))`, so
   ruleData entries can override or extend the system-level allowlist.
 
-### 3.4 Sigstore configuration (`data.config.default_sigstore_opts`)
+### 3.4 Sigstore verification inputs (default config and trusted-task rules)
 
-**Source**: Serialized by the CLI from its internal config structs into OPA's
-data tree.
+**Sources**: The CLI serializes `data.config.default_sigstore_opts` from its
+internal config structs into OPA's data tree. Per-rule `signing_identity`
+values are supplied separately through `trusted_task_rules` ruleData, as
+described in Section 3.3.
 
-**What the rules do**: `lib/sigstore/sigstore.rego` exposes `sigstore.opts`
+**What the rules do**: `lib/sigstore/sigstore.rego` exposes `sigstore.opts`,
 which defaults to safe values (empty strings, `ignore_rekor: false`) and is
-overridden by `data.config.default_sigstore_opts` when present. Rules like
-`source_image.signed` pass `sigstore.opts` to `ec.sigstore.verify_image`.
+overridden by `data.config.default_sigstore_opts` when present. Rules such as
+`source_image.signed` pass these options to `ec.sigstore.verify_image`. The
+trusted-task path instead passes a matching allow rule's `signing_identity`
+directly to the verifier, defaulting `ignore_rekor` to `false` when omitted;
+it does not inherit `sigstore.opts`. Verification for that path requires a
+digest-pinned OCI bundle. Git-resolved tasks are exempt.
 
-**Trust boundary**: The default covers 7 fields (`certificate_identity`,
+**Trust boundary**: The default config covers 8 fields (`certificate_identity`,
 `certificate_identity_regexp`, `certificate_oidc_issuer`,
-`certificate_oidc_issuer_regexp`, `ignore_rekor`, `public_key`, `rekor_url`).
-If additional fields can be injected via OPA deep merge from data sources,
-sigstore verification behavior can be altered. See CLI threat model open
-question 5 for the serialization gap analysis.
+`certificate_oidc_issuer_regexp`, `ignore_rekor`, `public_key`, `rekor_url`,
+`rekor_public_key`). If additional fields can be injected via OPA deep merge
+from data sources, sigstore verification behavior can be altered. Inline
+trusted-task identities are security-critical ruleData: they define which
+signers satisfy the corresponding allow rules. An actor who can change this
+ruleData can change those identities or add allow rules without one. See CLI
+threat model open question 5 for the serialization gap analysis.
 
 ### 3.5 OCI blob fetching (`ec.oci.*` builtins)
 
@@ -286,7 +301,7 @@ developer. See CLI threat model IV-4 for the Snapshot trust model.
 | ID | Threat | Impact | Likelihood | Existing Mitigation |
 |----|--------|--------|------------|---------------------|
 | DP-1 | **Rule data override via influenceable data source**: attacker adds permissive entries to `rule_data_custom` via a data source they can influence (e.g., a git repo referenced in the ECP). | High: weakens thresholds, expands trusted lists. | Low at release gate (SRE controls ECP and data sources), Medium at integration gate. | The `rule_data.get()` priority chain means `rule_data__configuration__` takes precedence. Custom data can only override if higher-priority keys are absent. |
-| DP-2 | **Trusted task injection via ruleData**: attacker adds entries to `trusted_tasks` or `trusted_task_rules` in ruleData to mark malicious task bundles as trusted. For the rules system (`trusted_task_rules`), the allow/deny set comes exclusively from `lib_rule_data("trusted_task_rules")` — there is no separate system-level `data`-tree source to merge with, so injected allow rules directly widen the trusted set. For the legacy `trusted_tasks` allowlist, `object.union(data.trusted_tasks, lib_rule_data("trusted_tasks"))` lets ruleData add to or override the system-level allowlist. | Critical: malicious build tasks treated as trusted, undermining provenance guarantees. | Low at release gate (SRE controls ECP), Medium at integration gate. | Schema validation checks format but not semantic correctness of task references. The rules system supports deny rules that take precedence over allow rules, but deny rules also originate from the same ruleData source, so they only help when the attacker cannot edit ruleData. |
+| DP-2 | **Trusted task injection via ruleData**: attacker adds entries to `trusted_tasks` or `trusted_task_rules` in ruleData to mark malicious task bundles as trusted. For `trusted_task_rules`, the allow/deny set comes exclusively from `lib_rule_data("trusted_task_rules")`, so injected allow rules directly widen the trusted set. | Critical: malicious build tasks treated as trusted, undermining provenance guarantees. | Low at release gate (SRE controls ECP), Medium at integration gate. | Structural schema validation and `sigstore.validate` check configured allow-rule identities; at evaluation, a matching signed OCI-bundle rule requires a digest-pinned bundle to pass `ec.sigstore.verify_image`. This gate applies only when `signing_identity` is present (Git tasks are exempt); an attacker who controls ruleData can add an unsigned pattern-only allow rule or choose an identity they control. For legacy `trusted_tasks`, `object.union(data.trusted_tasks, lib_rule_data("trusted_tasks"))` lets ruleData extend or override the system allowlist. Deny rules take precedence, but originate from the same ruleData and help only when the attacker cannot edit it. |
 | DP-3 | **Config namespace injection**: attacker injects new keys into `data.config.*` via OPA deep merge, adding fields not present in the CLI's config structs. | High: can alter sigstore verification behavior or introduce unexpected config. | Medium: requires the ECP to reference a data source the attacker can contribute to. | The CLI serializes a fixed set of config fields. OPA merge can only add new keys, not override existing ones. But any field consumed by a builtin but not serialized by the CLI becomes an injection vector. |
 | DP-4 | **Unbounded numeric rule data**: attacker manipulates `cve_leeway` values or `task_expiry_warning_days` to grant extended grace periods. | High: known critical CVEs or expired tasks pass the release gate. | Low at release gate, Medium at integration gate. | Leeway computation trusts configured values without upper-bound enforcement. `task_expiry_warning_days` has schema validation for type (integer, minimum 0) but no maximum. |
 
