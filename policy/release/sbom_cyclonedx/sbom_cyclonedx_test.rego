@@ -126,6 +126,81 @@ test_invalid_cdx_1_6 if {
 		with ec.oci.image_tag_refs as []
 }
 
+test_valid_cdx_1_7 if {
+	assertions.assert_empty(sbom_cyclonedx.deny) with input.attestations as [_sbom_1_7_attestation]
+		with sbom._verified_sbom_attestations as [_sbom_1_7_attestation]
+		with input.image.ref as "registry.local/spam@sha256:1230000000000000000000000000000000000000000000000000000000000123"
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+}
+
+test_invalid_cdx_1_7 if {
+	expected := {{
+		"code": "sbom_cyclonedx.valid_cdx_1_7",
+		"msg": "CycloneDX SBOM at index 0 is not valid: components: Invalid type. Expected: array, given: string",
+	}}
+	att := json.patch(_sbom_1_7_attestation, [{
+		"op": "add",
+		"path": "/statement/predicate/components",
+		"value": "spam",
+	}])
+	assertions.assert_equal_results(expected, sbom_cyclonedx.deny) with input.attestations as [att]
+		with sbom._verified_sbom_attestations as [att]
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+}
+
+test_invalid_cdx_1_7_external_reference_properties if {
+	att := json.patch(_sbom_1_7_attestation, [{
+		"op": "replace",
+		"path": "/statement/predicate/components/0/externalReferences/0/properties",
+		"value": "invalid",
+	}])
+	results := sbom_cyclonedx.deny with input.attestations as [att]
+		with sbom._verified_sbom_attestations as [att]
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	some result in results
+	result.code == "sbom_cyclonedx.valid_cdx_1_7"
+}
+
+test_invalid_cdx_1_7_spdx_license if {
+	att := json.patch(_sbom_1_7_attestation, [{
+		"op": "replace",
+		"path": "/statement/predicate/components/0/licenses/1/license/id",
+		"value": "not-a-valid-spdx-license",
+	}])
+	results := sbom_cyclonedx.deny with input.attestations as [att]
+		with sbom._verified_sbom_attestations as [att]
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+	some result in results
+	result.code == "sbom_cyclonedx.valid_cdx_1_7"
+}
+
+test_disallowed_package_cdx_1_7 if {
+	purl := "pkg:golang/k8s.io/client-go@v50.28.3"
+	expected := {{
+		"code": "sbom_cyclonedx.allowed",
+		"msg": sprintf("Package is not allowed: %s", [purl]),
+	}}
+	att := json.patch(_sbom_1_7_attestation, [{
+		"op": "replace",
+		"path": "/statement/predicate/components/0/purl",
+		"value": purl,
+	}])
+	assertions.assert_equal_results(expected, sbom_cyclonedx.deny) with input.attestations as [att]
+		with sbom._verified_sbom_attestations as [att]
+		with ec.oci.image_referrers as []
+		with ec.oci.image_tag_refs as []
+		with data.rule_data.disallowed_packages as [{
+			"purl": "pkg:golang/k8s.io/client-go",
+			"format": "semverv",
+			"min": "v50.28.3",
+		}]
+		with data.rule_data.vendored_purl_types as []
+}
+
 test_attributes_not_allowed_all_good if {
 	assertions.assert_empty(sbom_cyclonedx.deny) with input.attestations as [_sbom_1_5_attestation]
 		with sbom._verified_sbom_attestations as [_sbom_1_5_attestation]
@@ -865,6 +940,29 @@ _sbom_1_6_attestation := json.patch(_sbom_1_5_attestation, [
 		"op": "replace",
 		"path": "/statement/predicate/specVersion",
 		"value": "1.6",
+	},
+])
+
+_sbom_1_7_attestation := json.patch(_sbom_1_5_attestation, [
+	{
+		"op": "replace",
+		"path": "/statement/predicate/$schema",
+		"value": "http://cyclonedx.org/schema/bom-1.7.schema.json",
+	},
+	{
+		"op": "replace",
+		"path": "/statement/predicate/specVersion",
+		"value": "1.7",
+	},
+	{
+		"op": "add",
+		"path": "/statement/predicate/components/0/externalReferences/0/properties",
+		"value": [{"name": "source", "value": "example"}],
+	},
+	{
+		"op": "add",
+		"path": "/statement/predicate/components/0/licenses/-",
+		"value": {"license": {"id": "MIT"}},
 	},
 ])
 
