@@ -66,6 +66,48 @@ deny contains result if {
 	result := metadata.result_helper(rego.metadata.chain(), [workspace.name])
 }
 
+# METADATA
+# title: Workspaces format
+# description: >-
+#   Confirm that a Task implementing the Trusted Artifacts pattern declares its
+#   workspaces as a list. A present but malformed `spec.workspaces` (for example
+#   an object, a scalar or null) would otherwise silently skip the general
+#   purpose workspace check.
+# custom:
+#   short_name: workspaces_format
+#   failure_msg: The Task %q defines a malformed spec.workspaces, expecting a list
+#   effective_on: 2027-01-11T00:00:00Z
+#   collections:
+#   - redhat_security
+#
+deny contains result if {
+	_uses_trusted_artifacts(input)
+	_malformed_workspaces(input)
+	result := metadata.result_helper(rego.metadata.chain(), [k8s.name_version(input)])
+}
+
+# _malformed_workspaces is true when spec.workspaces is present but is not a list.
+# An absent spec.workspaces is a no-op. Presence is checked via the key so that a
+# present null (or any non-array) value is still detected.
+_malformed_workspaces(task) if {
+	"workspaces" in object.keys(task.spec)
+	not is_array(task.spec.workspaces)
+}
+
+# A workspaces entry that is not an object, or that has no name, cannot be checked
+# against the allowlist, so the general purpose workspace check would silently skip
+# it. Treat such an entry as malformed too.
+_malformed_workspaces(task) if {
+	some workspace in task.spec.workspaces
+	not is_object(workspace)
+}
+
+_malformed_workspaces(task) if {
+	some workspace in task.spec.workspaces
+	is_object(workspace)
+	not "name" in object.keys(workspace)
+}
+
 _ta_parameters contains param_name if {
 	some step in input.spec.steps
 	_is_ta_step(step)

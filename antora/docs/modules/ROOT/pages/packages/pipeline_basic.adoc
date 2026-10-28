@@ -16,4 +16,26 @@ Confirm that the pipeline definition has the kind "Pipeline".
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `Unexpected kind '%s' for pipeline definition`
 * Code: `basic.expected_kind`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/basic/basic.rego#L19[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/basic/basic.rego#L17[Source, window="_blank"]
+
+[#basic__expected_kind_v2]
+=== link:#basic__expected_kind_v2[Pipeline definition has expected kind (v2)]
+
+Confirm that the pipeline definition has the kind "Pipeline".
+
+* Rule type: [rule-type-indicator failure]#FAILURE#
+* FAILURE message: `Unexpected kind '%s' for pipeline definition`
+* Code: `basic.expected_kind_v2`
+* Effective from: `2027-01-11T00:00:00Z`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/basic/basic.rego#L30[Source, window="_blank"]
+
+[#basic__input_format]
+=== link:#basic__input_format[Pipeline definition is an object]
+
+Confirm the pipeline definition is a JSON/YAML object.
+
+* Rule type: [rule-type-indicator failure]#FAILURE#
+* FAILURE message: `Pipeline definition must be a JSON/YAML object`
+* Code: `basic.input_format`
+* Effective from: `2027-01-11T00:00:00Z`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/pipeline/basic/basic.rego#L45[Source, window="_blank"]

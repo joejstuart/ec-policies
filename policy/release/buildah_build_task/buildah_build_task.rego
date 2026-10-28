@@ -122,6 +122,32 @@ deny contains result if {
 	result := metadata.result_helper(rego.metadata.chain(), [])
 }
 
+# METADATA
+# title: Build task parameters are well-formed
+# description: >-
+#   Verify that the DOCKERFILE, ADD_CAPABILITIES, PLATFORM and PRIVILEGED_NESTED
+#   parameters of a builder Task, when present, are provided as strings. A
+#   non-string value (null, number, object or array), or a malformed parameter
+#   container that hides the parameters entirely, would otherwise be silently
+#   ignored by the parameter checks, allowing a malformed value to look like a
+#   pass.
+# custom:
+#   short_name: malformed_parameter
+#   failure_msg: '%s'
+#   solution: >-
+#     Provide the parameter as a string value, or unset it if it is optional.
+#   collections:
+#   - redhat
+#   - redhat_security
+#   effective_on: 2027-01-11T00:00:00Z
+#   depends_on:
+#   - attestation_type.known_attestation_type
+#
+deny contains result if {
+	some msg in _malformed_param_messages
+	result := metadata.result_helper(rego.metadata.chain(), [msg])
+}
+
 _not_allowed_prefix(search) if {
 	not_allowed_prefixes := ["http://", "https://"]
 	some not_allowed_prefix in not_allowed_prefixes
@@ -151,6 +177,30 @@ _platform_params contains param if {
 _privileged_nested_params contains param if {
 	some buildah_task in _buildah_tasks
 	param := tekton.task_param(buildah_task, "PRIVILEGED_NESTED")
+}
+
+# The build task parameters that must be strings when present.
+_string_param_names := {"DOCKERFILE", "ADD_CAPABILITIES", "PLATFORM", "PRIVILEGED_NESTED"}
+
+_malformed_params contains name if {
+	some buildah_task in _buildah_tasks
+	some name in _string_param_names
+	value := tekton.task_param(buildah_task, name)
+	not is_string(value)
+}
+
+# A present-but-non-string value for one of the known string parameters.
+_malformed_param_messages contains msg if {
+	some name in _malformed_params
+	msg := sprintf("The %q parameter of the buildah build task must be a string", [name])
+}
+
+# A malformed parameter container hides every parameter from task_param, so the
+# per-parameter checks above cannot see it; report it explicitly.
+_malformed_param_messages contains msg if {
+	some buildah_task in _buildah_tasks
+	tekton.malformed_params(buildah_task)
+	msg := "The buildah build task parameters are malformed"
 }
 
 # Verify disallowed_platform_patterns is a list of strings. Empty list is fine.

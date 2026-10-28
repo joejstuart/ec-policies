@@ -20,6 +20,19 @@ Verify the prefetch-dependencies task in the PipelineRun attestation was not inv
 * Code: `prefetch_dependencies.mode_not_permissive`
 * https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/prefetch_dependencies/prefetch_dependencies.rego#L16[Source, window="_blank"]
 
+[#prefetch_dependencies__mode_not_permissive_v2]
+=== link:#prefetch_dependencies__mode_not_permissive_v2[Prefetch dependencies mode parameter check (v2)]
+
+Verify the prefetch-dependencies task in the PipelineRun attestation was not invoked with the "permissive" mode parameter, which could compromise security.
+
+*Solution*: Change the mode parameter of the prefetch-dependencies task from 'permissive' to a more secure value, and make sure it is provided as a string. The permissive mode may allow insecure dependency fetching practices.
+
+* Rule type: [rule-type-indicator failure]#FAILURE#
+* FAILURE message: `Task '%s' was invoked with an insecure or malformed mode parameter`
+* Code: `prefetch_dependencies.mode_not_permissive_v2`
+* Effective from: `2027-01-11T00:00:00Z`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/prefetch_dependencies/prefetch_dependencies.rego#L44[Source, window="_blank"]
+
 [#prefetch_dependencies__package_registry_proxy_enabled]
 === link:#prefetch_dependencies__package_registry_proxy_enabled[Prefetch task has package registry proxy enabled]
 
@@ -31,4 +44,4 @@ Verify that prefetch-dependencies tasks have the enable-package-registry-proxy p
 * FAILURE message: `Task '%s' does not have the enable-package-registry-proxy parameter set to true`
 * Code: `prefetch_dependencies.package_registry_proxy_enabled`
 * Effective from: `2026-05-13T00:00:00Z`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/prefetch_dependencies/prefetch_dependencies.rego#L44[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/release/prefetch_dependencies/prefetch_dependencies.rego#L73[Source, window="_blank"]

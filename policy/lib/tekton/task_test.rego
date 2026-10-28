@@ -105,6 +105,31 @@ test_task_param if {
 	not tekton.task_param(task, "missing")
 }
 
+test_malformed_params if {
+	# Well-formed v0.2 (object) and v1 (array of name/value) params are not malformed.
+	not tekton.malformed_params({"invocation": {"parameters": {"mode": "strict"}}})
+	not tekton.malformed_params({"params": [{"name": "mode", "value": "strict"}]})
+	not tekton.malformed_params({"params": []})
+	not tekton.malformed_params({})
+
+	# A v0.2 parameters container that is not an object is malformed.
+	tekton.malformed_params({"invocation": {"parameters": ["mode"]}})
+	tekton.malformed_params({"invocation": {"parameters": "mode"}})
+
+	# A v1 params container that is not an array is malformed.
+	tekton.malformed_params({"params": {"mode": "strict"}})
+	tekton.malformed_params({"params": "mode"})
+
+	# A v1 params entry that is not an object, or is missing name or value, is malformed.
+	tekton.malformed_params({"params": ["mode"]})
+	tekton.malformed_params({"params": [{"name": "mode"}]})
+	tekton.malformed_params({"params": [{"value": "strict"}]})
+
+	# A v1 params entry whose name is not a string is malformed; it would become an
+	# unmatchable map key in task_params.
+	tekton.malformed_params({"params": [{"name": 123, "value": "x"}]})
+}
+
 test_task_result if {
 	task := {"results": [{"name": "SPAM", "value": "maps"}]}
 	assertions.assert_equal("maps", tekton.task_result(task, "SPAM"))

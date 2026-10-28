@@ -66,24 +66,46 @@ test_different_versions_different_results_required_missing if {
 		{"task": "task", "version": "2", "result": "MISSING_RESULT"},
 	]}
 
-	assertions.assert_equal_results(results.deny, {{
-		"code": "results.required",
-		"msg": `"MISSING_RESULT" result not found in "task" Task/v1 (all versions)`,
-	}}) with input as task_v1
+	# Well-formed results that are simply missing the required one trip both the
+	# legacy rule and its v2 successor.
+	assertions.assert_equal_results(results.deny, {
+		{
+			"code": "results.required",
+			"msg": `"MISSING_RESULT" result not found in "task" Task/v1 (all versions)`,
+		},
+		{
+			"code": "results.required_v2",
+			"msg": `"MISSING_RESULT" result not found in "task" Task/v1 (all versions)`,
+		},
+	}) with input as task_v1
 		with data.rule_data as rule_data
 
-	assertions.assert_equal_results(results.deny, {{
-		"code": "results.required",
-		"msg": `"MISSING_RESULT" result not found in "task" Task/v2`,
-	}}) with input as task_v2
+	assertions.assert_equal_results(results.deny, {
+		{
+			"code": "results.required",
+			"msg": `"MISSING_RESULT" result not found in "task" Task/v2`,
+		},
+		{
+			"code": "results.required_v2",
+			"msg": `"MISSING_RESULT" result not found in "task" Task/v2`,
+		},
+	}) with input as task_v2
 		with data.rule_data as rule_data
 }
 
 test_required_result_defined if {
-	expected := {{
-		"code": "results.required",
-		"msg": `"GRILLED" result not found in "bacon" Task (all versions)`,
-	}}
+	# Well-formed (or absent/null) results that lack the required one trip both the
+	# legacy rule and its v2 successor.
+	expected := {
+		{
+			"code": "results.required",
+			"msg": `"GRILLED" result not found in "bacon" Task (all versions)`,
+		},
+		{
+			"code": "results.required_v2",
+			"msg": `"GRILLED" result not found in "bacon" Task (all versions)`,
+		},
+	}
 
 	assertions.assert_equal_results(results.deny, expected) with data.rule_data as _rule_data
 		with input as json.patch(_mock_task, [{
@@ -97,6 +119,49 @@ test_required_result_defined if {
 
 	assertions.assert_equal_results(results.deny, expected) with data.rule_data as _rule_data
 		with input as json.remove(_mock_task, ["spec/results/0"])
+
+	# A null spec.results is empty-like for both rules and must still deny on both.
+	assertions.assert_equal_results(results.deny, expected) with data.rule_data as _rule_data
+		with input as json.patch(_mock_task, [{
+			"op": "add",
+			"path": "spec/results",
+			"value": null,
+		}])
+
+	# A wrong-container object at spec.results that contains a matching result name
+	# masks the missing result from the legacy rule (it iterates the object values
+	# and finds a match), so only the v2 rule denies here.
+	assertions.assert_equal_results(results.deny, {{
+		"code": "results.required_v2",
+		"msg": `"GRILLED" result not found in "bacon" Task (all versions)`,
+	}}) with data.rule_data as _rule_data
+		with input as json.patch(_mock_task, [{
+			"op": "add",
+			"path": "spec/results",
+			"value": {"GRILLED": {"name": "GRILLED"}},
+		}])
+}
+
+# A Task with no usable metadata.name can never be matched against the rule data, so
+# the legacy rule silently passes it. The v2 rule reports it when required results
+# are configured.
+test_missing_metadata_name if {
+	expected := {{
+		"code": "results.required_v2",
+		"msg": "Task has no usable metadata.name; required results cannot be verified",
+	}}
+
+	# metadata present but without a name.
+	assertions.assert_equal_results(results.deny, expected) with data.rule_data as _rule_data
+		with input as json.remove(_mock_task, ["metadata/name"])
+
+	# metadata is not an object at all.
+	assertions.assert_equal_results(results.deny, expected) with data.rule_data as _rule_data
+		with input as json.patch(_mock_task, [{"op": "replace", "path": "metadata", "value": "oops"}])
+
+	# With no required results configured the check stays a no-op.
+	assertions.assert_empty(results.deny) with data.rule_data as {"required_task_results": []}
+		with input as json.remove(_mock_task, ["metadata/name"])
 }
 
 test_rule_data_provided if {

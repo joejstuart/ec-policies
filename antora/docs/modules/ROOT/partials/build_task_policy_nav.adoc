@@ -1,4 +1,5 @@
 * xref:build_task_policy.adoc[Build Task Policy]
 ** xref:packages/build_task_build_labels.adoc[Tekton task build type label checks]
 *** xref:packages/build_task_build_labels.adoc#build_labels__build_type_label_set[Build task has build type label]
+*** xref:packages/build_task_build_labels.adoc#build_labels__build_type_label_set_v2[Build task has build type label (v2)]
 *** xref:packages/build_task_build_labels.adoc#build_labels__build_task_has_label[Build task has label]

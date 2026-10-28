@@ -18,6 +18,17 @@ Confirm the build task definition has the required build type label.
 * Code: `build_labels.build_type_label_set`
 * https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L18[Source, window="_blank"]
 
+[#build_labels__build_type_label_set_v2]
+=== link:#build_labels__build_type_label_set_v2[Build task has build type label (v2)]
+
+Confirm the build task definition has the required build type label.
+
+* Rule type: [rule-type-indicator failure]#FAILURE#
+* FAILURE message: `The required build label '%s' is missing`
+* Code: `build_labels.build_type_label_set_v2`
+* Effective from: `2027-01-11T00:00:00Z`
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L33[Source, window="_blank"]
+
 [#build_labels__build_task_has_label]
 === link:#build_labels__build_task_has_label[Build task has label]
 
@@ -26,4 +37,4 @@ Confirm that the build task definition includes at least one label.
 * Rule type: [rule-type-indicator failure]#FAILURE#
 * FAILURE message: `The task definition does not include any labels`
 * Code: `build_labels.build_task_has_label`
-* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L33[Source, window="_blank"]
+* https://github.com/conforma/policy/blob/{page-origin-refhash}/policy/build_task/build_labels/build_labels.rego#L52[Source, window="_blank"]
