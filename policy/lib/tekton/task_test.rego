@@ -66,6 +66,30 @@ test_tasks_from_slsav1_tekton_attestation if {
 	assertions.assert_equal({expected_task}, tasks)
 }
 
+test_tasks_from_slsav1_tekton_attestation_without_results if {
+	params := [{"name": "enable-package-registry-proxy", "value": "true"}]
+	task := with_params(without_results(slsav1_task("prefetch-dependencies")), params)
+	attestation := slsav1_attestation([task])
+
+	expected_task := resolved_slsav1_task_without_results("prefetch-dependencies", params)
+	assertions.assert_equal({expected_task}, tekton.tasks(attestation))
+
+	some t in tekton.tasks(attestation)
+	assertions.assert_equal("true", tekton.task_param(t, "enable-package-registry-proxy"))
+	assertions.assert_equal("prefetch-dependencies", tekton.pipeline_task_name(t))
+	assertions.assert_equal(
+		{"prefetch-dependencies", "prefetch-dependencies[enable-package-registry-proxy=true]"},
+		tekton.task_names(t),
+	)
+	assertions.assert_equal(
+		{
+			"tekton.dev/task": "prefetch-dependencies",
+			"tekton.dev/pipelineTask": "prefetch-dependencies",
+		},
+		tekton.task_labels(t),
+	)
+}
+
 test_tasks_from_pipeline if {
 	git_clone := {"taskRef": {"name": "git-clone"}}
 	buildah := {"taskRef": {"name": "buildah"}}
@@ -765,6 +789,11 @@ with_results(task, task_results) := json.patch(
 	[{"op": "replace", "path": "/status/results", "value": task_results}],
 )
 
+# Helper to remove results from an existing task. This mimics TaskRuns that
+# emit no results: Tekton Chains omits "status.results" entirely for them.
+# Usage: without_results(slsav1_task("build"))
+without_results(task) := json.remove(task, ["/status/results"])
+
 # Helper to set conditions on an existing task
 # Usage: with_conditions(slsav1_task("build"), [{"type": "Succeeded", "status": "False", ...}])
 with_conditions(task, conditions) := json.patch(
@@ -841,6 +870,13 @@ resolved_slsav1_task(task_name, resolved_params, resolved_results) := task if {
 		},
 	)
 }
+
+# Creates a resolved SLSA v1.0 task (after _slsa_task() processing) for a
+# TaskRun that emitted no results: params are lifted, results are not.
+resolved_slsav1_task_without_results(task_name, resolved_params) := object.union(
+	without_results(with_params(slsav1_task(task_name), resolved_params)),
+	{"params": resolved_params},
+)
 
 resolved_dependencies(tasks) := [r |
 	some task in tasks
