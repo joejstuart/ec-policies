@@ -4,6 +4,7 @@ import rego.v1
 
 import data.lib
 import data.lib.assertions
+import data.lib.tekton_test
 import data.trusted_task
 
 test_success if {
@@ -1357,6 +1358,38 @@ test_mixed_trusted_and_untrusted_tasks if {
 		with ec.oci.image_manifests as _mock_image_manifests
 		with ec.oci.image_manifest as _mock_image_manifest
 }
+
+test_signing_identity_verification_failed_error_rules if {
+	_task_base := tekton_test.slsav1_task("trusty")
+	_task_with_bundle := tekton_test.with_bundle(
+		_task_base,
+		"registry.local/trusty:1.0@sha256:d19e5700000000000000000000000000000000000000000000000000d19e5700",
+	)
+	task := tekton_test.with_results(_task_with_bundle, [])
+	att := tekton_test.slsav1_attestation([task])
+
+	rules := {"allow": {"signed-catalog": [{
+		"pattern": "oci://registry.local/trusty*",
+		"signing_identity": {
+			"certificate_identity_regexp": "https://tekton.dev/chains/.*",
+			"certificate_oidc_issuer": "https://accounts.google.com",
+		},
+	}]}}
+
+	results := trusted_task.deny with input.attestations as [att]
+		with data.rule_data.trusted_task_rules as rules
+		with data.rule_data.trusted_task_rules_enabled as true
+		with ec.sigstore.verify_image as _mock_verify_image_failure
+		with ec.oci.image_manifests as _mock_empty_manifests
+
+	assertions.assert_not_empty(results)
+	some result in results
+	contains(result.msg, "signing_identity_verification_failed")
+}
+
+_mock_verify_image_failure(_, _) := {"success": false, "errors": ["signature verification failed"]}
+
+_mock_empty_manifests(_) := {}
 
 #####################################################
 # Helper Functions for trusted_task_rules tests
