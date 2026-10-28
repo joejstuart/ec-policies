@@ -92,6 +92,37 @@ test_oci_ta_proxy_enabled_pass if {
 	assertions.assert_empty(prefetch_dependencies.deny) with input as _slsav1_attestation("prefetch-dependencies-oci-ta", "strict", "true")
 }
 
+test_slsav1_no_taskrun_results_proxy_enabled_pass if {
+	assertions.assert_empty(prefetch_dependencies.deny) with input as _slsav1_attestation_without_taskrun_results("prefetch-dependencies", "strict", "true")
+}
+
+test_slsav1_no_taskrun_results_proxy_disabled_violation if {
+	expected := {{
+		"code": "prefetch_dependencies.package_registry_proxy_enabled",
+		"effective_on": "2026-05-13T00:00:00Z",
+		"msg": "Task 'prefetch-dependencies' does not have the enable-package-registry-proxy parameter set to true",
+	}}
+	assertions.assert_equal_results(expected, prefetch_dependencies.deny) with input as _slsav1_attestation_without_taskrun_results("prefetch-dependencies", "strict", "false")
+}
+
+test_slsav1_no_taskrun_results_mode_permissive_violation if {
+	expected := {{
+		"code": "prefetch_dependencies.mode_not_permissive",
+		"effective_on": "2022-01-01T00:00:00Z",
+		"msg": "Task 'prefetch-dependencies' was invoked with mode parameter set to 'permissive'",
+	}}
+	assertions.assert_equal_results(expected, prefetch_dependencies.deny) with input as _slsav1_attestation_without_taskrun_results("prefetch-dependencies", "permissive", "true")
+}
+
+_slsav1_attestation_without_taskrun_results(task_name, mode, proxy) := {"attestations": [att]} if {
+	_base := tekton_test.without_results(tekton_test.slsav1_task(task_name))
+	task := tekton_test.with_params(_base, [
+		{"name": "mode", "value": mode},
+		{"name": "enable-package-registry-proxy", "value": proxy},
+	])
+	att := tekton_test.slsav1_attestation([task])
+}
+
 _make_attestation(task_name, params) := {"attestations": [{"statement": {
 	"_type": "https://in-toto.io/Statement/v0.1",
 	"subject": [{"name": "registry.redhat.io/ubi8/ubi:latest"}],

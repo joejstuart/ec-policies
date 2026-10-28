@@ -24,35 +24,40 @@ current_required_default_tasks := ectime.most_current(data["required-tasks"])
 # tasks returns the set of tasks found in the object.
 tasks(obj) := {task |
 	some maybe_task in _maybe_tasks(obj)
-	task := _slsa_task(maybe_task)
+	task := _slsa_task(obj, maybe_task)
 }
 
-# task from a slsav0.2 attestation or from a pipeline spec
-_slsa_task(task) := task if {
-	# tasks in slsa v0.2 have a 'results' section, while tasks in slsa v1 have a
-	# 'status.results' section.
-	#
-	# the check below ensures that, in case we're dealing with a slsa v1 attestation,
-	# we apply the correct task info extraction
-	not task.status.results
+# task from a slsav0.2 attestation or from a pipeline spec. The task is used
+# as-is: params are already available through "invocation.parameters" (v0.2)
+# or "params" (pipeline spec).
+_slsa_task(obj, task) := task if {
+	not _is_slsav1_attestation(obj)
 	ref := task_ref(task)
 	ref.kind == "task"
 }
 
-# task from a slsav1 attestation extracted from resolvedDependencies (TaskRun object)
-_slsa_task(task) := complete_task if {
+# task from a slsav1 attestation extracted from resolvedDependencies (TaskRun object).
+# The format is decided by the statement's predicateType. "spec.params" is
+# lifted to "params", and "status.results" to "results" when present.
+_slsa_task(obj, task) := complete_task if {
+	_is_slsav1_attestation(obj)
+	ref := task_ref(task)
+	ref.kind == "task"
+	complete_task := object.union(task, _slsav1_task_extra_fields(task))
+}
+
+_is_slsav1_attestation(obj) if {
+	obj.statement.predicateType == slsa_provenance_predicate_type_v1
+}
+
+_slsav1_task_extra_fields(task) := object.union(
+	_slsav1_task_results(task),
+	_slsav1_task_params(task),
+)
+
+_slsav1_task_results(task) := {"results": task.status.results} if {
 	task.status.results
-
-	ref := task_ref(task)
-	ref.kind == "task"
-
-	extra_fields := object.union(
-		{"results": task.status.results},
-		_slsav1_task_params(task),
-	)
-
-	complete_task := object.union(task, extra_fields)
-}
+} else := {}
 
 _slsav1_task_params(task) := {"params": task.spec.params} if {
 	task.spec.params
