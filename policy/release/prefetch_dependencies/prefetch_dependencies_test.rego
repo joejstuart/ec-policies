@@ -154,11 +154,17 @@ test_slsav1_no_taskrun_results_proxy_disabled_violation if {
 }
 
 test_slsav1_no_taskrun_results_mode_permissive_violation if {
-	expected := {{
-		"code": "prefetch_dependencies.mode_not_permissive",
-		"effective_on": "2022-01-01T00:00:00Z",
-		"msg": "Task 'prefetch-dependencies' was invoked with mode parameter set to 'permissive'",
-	}}
+	# "permissive" trips both the legacy rule and its v2 successor.
+	expected := {
+		{
+			"code": "prefetch_dependencies.mode_not_permissive",
+			"msg": "Task 'prefetch-dependencies' was invoked with mode parameter set to 'permissive'",
+		},
+		{
+			"code": "prefetch_dependencies.mode_not_permissive_v2",
+			"msg": "Task 'prefetch-dependencies' was invoked with an insecure or malformed mode parameter",
+		},
+	}
 	assertions.assert_equal_results(expected, prefetch_dependencies.deny) with input as _slsav1_attestation_without_taskrun_results("prefetch-dependencies", "permissive", "true")
 }
 
